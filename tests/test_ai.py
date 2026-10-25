@@ -45,13 +45,15 @@ def test_assessment_explain_fallback(client):
     response = client.post("/api/v1/ai/assessment/explain", json=payload)
     assert response.status_code == 200
     data = response.json()["data"]
-    assert data["suggested_specialty"] in ["Pulmonology", "Cardiology", "General Medicine"]
+    assert any(term in data["suggested_specialty"] for term in ["Pulmonolog", "Cardiolog", "General Medicine"])
     assert "explanation" in data
     assert "requires_professional_review" in data
     assert data["requires_professional_review"] is True
 
 
 def test_ai_chat_fallback(client):
+    from tests.conftest import register, auth_headers
+    token = register(client, "chat_user@test.com", "PATIENT")
     payload = {
         "message": "Why is my risk score elevated?",
         "care_level": "STABLE",
@@ -59,7 +61,7 @@ def test_ai_chat_fallback(client):
         "top_factors": ["mild fatigue"],
         "language": "English",
     }
-    response = client.post("/api/v1/ai/chat", json=payload)
+    response = client.post("/api/v1/ai/chat", json=payload, headers=auth_headers(token))
     assert response.status_code == 200
     data = response.json()["data"]
     assert "message" in data

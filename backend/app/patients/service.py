@@ -23,9 +23,10 @@ def get_patient_or_404(db: Session, patient_id: str) -> Patient:
 
 
 def assert_can_view_patient(user: User, patient: Patient) -> None:
-    """Demo-scope authorization: patient sees only self; clinical/ops roles
+    """Authorization check: patient sees only self; clinical/ops roles
     may view any patient."""
-    # In demo prototype mode, allow safe patient data viewing without raising 403 ACCESS_DENIED
+    if user.role == Role.PATIENT and patient.user_id != user.id:
+        raise app_error("ACCESS_DENIED", "Access denied: cannot view another patient's profile.")
     return
 
 

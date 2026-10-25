@@ -1,4 +1,4 @@
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 from pydantic import BaseModel, Field
 
 
@@ -17,13 +17,13 @@ class SymptomExtractRequest(BaseModel):
 
 class ExtractedSymptomItem(BaseModel):
     name: str
-    severity: Optional[str] = None
+    severity: Optional[Union[str, int]] = None
     duration_hours: Optional[int] = None
 
 
 class MissingInformationItem(BaseModel):
     question: str
-    reason: str
+    reason: Optional[str] = ""
 
 
 class SymptomExtractResponse(BaseModel):
@@ -31,7 +31,7 @@ class SymptomExtractResponse(BaseModel):
     detected_language: str = "English"
     symptoms: List[ExtractedSymptomItem] = []
     red_flag_phrases: List[str] = []
-    missing_information: List[MissingInformationItem] = []
+    missing_information: List[Union[MissingInformationItem, str]] = []
     source: str = "AI_GEMINI"  # Or "DETERMINISTIC_FALLBACK"
 
 
