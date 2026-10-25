@@ -1,4 +1,4 @@
-# FAME GENIX — AI-Powered Smart Health Monitoring, Risk Prediction & Emergency Response System
+﻿# FAME GENIX — AI-Powered Smart Health Monitoring, Risk Prediction & Emergency Response System
 
 FAME GENIX is an enterprise-oriented, AI-assisted continuous health monitoring and decision-support platform. It integrates physiological telemetry streaming (modeled after the FAME Smart Mask interface), natural language symptom intake, personal longitudinal health baselines, health drift tracking, multivariate anomaly detection, deterministic red-flag safety rules, and an explainable risk fusion engine.
 
@@ -68,3 +68,25 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ## 🔒 Verification & Compliance Notice
 FAME GENIX is designed as an AI-assisted continuous monitoring and decision-support system. Telemetry streams, emergency dispatch state transitions, and hospital handoffs are operating in **SIMULATION** mode for software validation. This system is non-clinical decision support.
+
+
+## 🌟 FAME-GENIX 2.0: Agentic AI & RAG Extensions
+
+In Version 2.0 (developed for the **Nebius × NVIDIA Global AI Hackathon**), FAME-GENIX integrates advanced agentic and retrieval-augmented capabilities:
+1. **Multi-Tier AI Gateway**:
+   - **Nebius Token Factory / NVIDIA Model Client**: OpenAI-compatible client integration (https://api.tokenfactory.nebius.ai/v1) with failover to Google Gemini and deterministic clinical heuristics.
+   - **Tavily Medical Search Integration**: Live guideline retrieval verifying against reputable sources (
+ih.gov, cdc.gov, who.int, pubmed.ncbi.nlm.nih.gov).
+2. **Controlled Agent Orchestrator**:
+   - Typed Pydantic tool schemas for symptom analysis, knowledge base retrieval, live web verification, and emergency dispatch.
+   - Role-based tool authorization ensuring emergency dispatch requires authenticated clinical/operations authority.
+3. **Medical Document Ingestion & Hybrid RAG**:
+   - OCR and text extraction for PDF lab reports using PyMuPDF and Pillow.
+   - Clinical guideline knowledge base indexing AHA STEMI, WHO Hypoxemia, NICE Stroke, WAO Anaphylaxis, and ADA DKA guidelines.
+4. **Real-time Server-Sent Events (SSE)**:
+   - High-throughput streaming endpoint at GET /api/v1/events/stream for synchronized multi-portal live updates across Patient, Doctor, and Emergency Operator views.
+
+---
+
+## 📄 License
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
