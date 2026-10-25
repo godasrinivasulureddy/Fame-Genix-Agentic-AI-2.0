@@ -29,6 +29,15 @@ class Settings(BaseSettings):
     AI_ENABLED: bool = os.getenv("AI_ENABLED", "true").lower() == "true"
     AI_TIMEOUT_SECONDS: int = int(os.getenv("AI_TIMEOUT_SECONDS", "30"))
 
+    # Nebius Token Factory & NVIDIA Models
+    NEBIUS_API_KEY: str = os.getenv("NEBIUS_API_KEY", "")
+    NEBIUS_BASE_URL: str = os.getenv("NEBIUS_BASE_URL", "https://api.tokenfactory.nebius.ai/v1")
+    NVIDIA_MODEL_REASONING: str = os.getenv("NVIDIA_MODEL_REASONING", "nvidia/nemotron-4-340b-instruct")
+    NVIDIA_MODEL_FAST: str = os.getenv("NVIDIA_MODEL_FAST", "nvidia/llama-3.1-nemotron-70b-instruct")
+
+    # Tavily Search API (Clinical Guidelines RAG)
+    TAVILY_API_KEY: str = os.getenv("TAVILY_API_KEY", "")
+
     class Config:
         env_file = (
             ".env",

@@ -50,8 +50,29 @@ class AIService:
         self.enabled = settings.AI_ENABLED
         self._client = None
         
+        # Nebius Token Factory & NVIDIA Models (T2.11 & T2.12)
+        self.nebius_key = settings.NEBIUS_API_KEY
+        self.nebius_base_url = settings.NEBIUS_BASE_URL
+        self.nvidia_reasoning_model = settings.NVIDIA_MODEL_REASONING
+        self.nvidia_fast_model = settings.NVIDIA_MODEL_FAST
+        self._nebius_client = None
+
+        if self.nebius_key and self.nebius_key.strip():
+            try:
+                from openai import OpenAI
+                self._nebius_client = OpenAI(
+                    base_url=self.nebius_base_url,
+                    api_key=self.nebius_key,
+                    timeout=float(settings.AI_TIMEOUT_SECONDS)
+                )
+                logger.info("[AIService] Nebius Token Factory OpenAI-compatible client initialized successfully.")
+            except Exception as e:
+                logger.warning(f"[AIService] Failed to initialize Nebius Token Factory client: {e}")
+                self._nebius_client = None
+        
         gemini_configured = bool(self.api_key and self.api_key.strip() and self.api_key != "your_gemini_api_key_here")
         openrouter_configured = bool(os.environ.get("OPENROUTER_API_KEY"))
+        logger.info(f"Nebius Token Factory configured: {'YES' if self._nebius_client else 'NO'}")
         logger.info(f"Gemini key configured: {'YES' if gemini_configured else 'NO'}")
         logger.info(f"OpenRouter key configured: {'YES' if openrouter_configured else 'NO'}")
 
@@ -64,8 +85,27 @@ class AIService:
                 self._client = None
 
     def _generate_with_failover(self, prompt: str) -> str:
-        if not self._client or not self.enabled:
+        if not self.enabled:
             return ""
+
+        # 1. Primary: Nebius Token Factory with NVIDIA Nemotron
+        if self._nebius_client:
+            for model_name in [self.nvidia_reasoning_model, self.nvidia_fast_model]:
+                try:
+                    response = self._nebius_client.chat.completions.create(
+                        model=model_name,
+                        messages=[{"role": "user", "content": prompt}],
+                        temperature=0.2,
+                        max_tokens=1500
+                    )
+                    content = response.choices[0].message.content or ""
+                    if content:
+                        logger.info(f"[AIService] AI provider: Nebius | Model: {model_name} | Status: success")
+                        return content
+                except Exception as e:
+                    logger.warning(f"[AIService] AI provider: Nebius | Model: {model_name} | Attempt failed: {e}")
+
+        # 2. Secondary: Google Gemini""
             
         models_to_try = [
             "gemini-2.5-flash",

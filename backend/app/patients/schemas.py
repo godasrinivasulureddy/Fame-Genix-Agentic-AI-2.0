@@ -57,3 +57,28 @@ class TimelineEvent(BaseModel):
     timestamp: datetime
     summary: str
     data: dict
+
+
+class ObservationMetricItem(BaseModel):
+    metric: str  # hr, spo2, rr, temp, voc
+    value: float
+    unit: str
+    quality: str = "GOOD"
+    is_simulated: bool = True
+
+
+class PatientObservationCreate(BaseModel):
+    device_id: str | None = None
+    source_type: str = "MANUAL_OR_SIMULATED"
+    readings: list[ObservationMetricItem]
+    recorded_at: datetime | None = None
+    simulation_label: str = "SIMULATED TELEMETRY"
+
+
+class PatientObservationOut(BaseModel):
+    patient_id: str
+    accepted_count: int
+    readings: list[dict]
+    anomalies_detected: int = 0
+    message: str = "Observations recorded successfully."
+

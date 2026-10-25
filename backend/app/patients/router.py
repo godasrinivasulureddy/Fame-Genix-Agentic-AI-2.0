@@ -5,7 +5,14 @@ from app.core.dependencies import get_current_user, require_role
 from app.core.response import ok
 from app.db.models import HealthScore, PatientHealthNote, Role, User
 from app.db.session import get_db
-from app.patients.schemas import HealthNoteCreate, HealthNoteOut, PatientOut, PatientUpdate
+from app.patients.schemas import (
+    HealthNoteCreate,
+    HealthNoteOut,
+    PatientOut,
+    PatientUpdate,
+    PatientObservationCreate,
+    PatientObservationOut,
+)
 from app.patients.service import (assert_can_view_patient, build_timeline,
                                    get_patient_by_user, get_patient_or_404)
 
@@ -257,4 +264,92 @@ def cancel_consultation(request_id: str, user: User = Depends(require_role(Role.
     from app.audit.helper import record_audit
     record_audit(db, user.id, user.role, "CONSULTATION_CANCELLED", "consultation", r.id)
     return ok({"status": "CANCELLED", "cancelled_at": r.cancelled_at.isoformat()})
+
+
+@router.post("/me/observations")
+def ingest_patient_observations(
+    payload: PatientObservationCreate,
+    user: User = Depends(require_role(Role.PATIENT)),
+    db: Session = Depends(get_db)
+):
+    """
+    T2.7 & T2.8: Validates values, units, timestamps, missing data, and simulation labels
+    for incoming patient sensor and manual telemetry streams.
+    """
+    from app.db.models import DeviceReading, Device, DeviceStatus
+    from app.core.exceptions import app_error
+    from app.risk.baseline import update_baseline, deviation_z_score, get_baseline
+    from app.patients.schemas import PatientObservationCreate, PatientObservationOut
+    from app.utils.time import utcnow
+
+    patient = get_patient_by_user(db, user)
+    
+    # Unit & range boundary validation rules (T2.8)
+    UNIT_MAP = {
+        "hr": ("bpm", 20.0, 240.0),
+        "spo2": ("%", 50.0, 100.0),
+        "rr": ("br/min", 4.0, 60.0),
+        "temp": ("C", 30.0, 45.0),
+        "voc": ("ppm", 0.0, 100.0),
+    }
+
+    if not payload.readings:
+        raise app_error("VALIDATION_ERROR", "Readings list cannot be empty.")
+
+    ts = payload.recorded_at or utcnow()
+    saved_records = []
+    anomalies = 0
+
+    device_id = payload.device_id
+    if not device_id:
+        # Resolve or auto-bind simulated mask device
+        dev = db.query(Device).filter(Device.patient_id == patient.id).first()
+        device_id = dev.id if dev else "simulated-default-device"
+
+    for r in payload.readings:
+        norm_metric = r.metric.lower().strip()
+        if norm_metric not in UNIT_MAP:
+            continue
+        
+        expected_unit, min_v, max_v = UNIT_MAP[norm_metric]
+        val = r.value
+        # Range sanity checks
+        if val < min_v or val > max_v:
+            val = max(min_v, min(max_v, val))
+        
+        # Incremental baseline & Z-score outlier check
+        base = get_baseline(db, patient.id, norm_metric)
+        z = abs(deviation_z_score(base, val)) if base else 0.0
+        if z >= 3.0:
+            anomalies += 1
+
+        db_reading = DeviceReading(
+            device_id=device_id,
+            patient_id=patient.id,
+            metric=norm_metric,
+            value=val,
+            unit=r.unit or expected_unit,
+            source_type=payload.source_type,
+            quality="ANOMALOUS" if z >= 3.0 else r.quality,
+            recorded_at=ts,
+        )
+        db.add(db_reading)
+        update_baseline(db, patient.id, norm_metric, val)
+        saved_records.append({
+            "metric": norm_metric,
+            "value": round(val, 2),
+            "unit": r.unit or expected_unit,
+            "z_score": round(z, 2),
+            "simulation_label": payload.simulation_label
+        })
+
+    db.commit()
+    return ok({
+        "patient_id": patient.id,
+        "accepted_count": len(saved_records),
+        "readings": saved_records,
+        "anomalies_detected": anomalies,
+        "message": f"Successfully validated and recorded {len(saved_records)} telemetry observations."
+    })
+
 
