@@ -18,6 +18,7 @@ from app.symptoms.router import router as symptoms_router
 from app.ai.router import router as ai_router
 from app.images.router import router as images_router
 from app.reports.router import router as reports_router
+from app.core.sse_router import router as sse_router
 
 app = FastAPI(title=settings.APP_NAME, version="0.1.0")
 
@@ -45,6 +46,7 @@ app.include_router(audit_router)
 app.include_router(ai_router)
 app.include_router(images_router)
 app.include_router(reports_router)
+app.include_router(sse_router)
 
 
 @app.on_event("startup")

@@ -98,7 +98,8 @@ def verify(db: Session, case: EmergencyCase, verified_by_user_id: str) -> Emerge
 
 def request_dispatch(db: Session, case: EmergencyCase) -> EmergencyCase:
     case = _transition(db, case, EmergencyStatus.DISPATCH_REQUESTED, "DISPATCH_REQUESTED", {})
-    assignment = AmbulanceAssignment(case_id=case.id, status="REQUESTED")
+    case = _transition(db, case, EmergencyStatus.DISPATCHED, "DISPATCHED", {})
+    assignment = AmbulanceAssignment(case_id=case.id, status="DISPATCHED")
     db.add(assignment)
     db.commit()
     event_bus.publish(DISPATCH_REQUESTED, {"case_id": case.id, "patient_id": case.patient_id})
