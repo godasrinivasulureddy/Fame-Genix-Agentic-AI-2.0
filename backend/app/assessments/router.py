@@ -59,6 +59,7 @@ def _serialize(a: RiskAssessment, db: Session = None) -> dict:
         "negated_symptoms": [],
         "red_flags": red_flags,
         "missing_evidence": json.loads(a.missing_evidence or "[]"), "created_at": a.created_at,
+        "triggered_safety_rules": getattr(a, "_triggered_safety_rules", []),
     }
 
 

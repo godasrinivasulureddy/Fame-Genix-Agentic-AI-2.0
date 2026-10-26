@@ -90,12 +90,12 @@ export const api = {
         const { done, value } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
-        const blocks = buffer.split('\\n\\n');
+        const blocks = buffer.split('\n\n');
         buffer = blocks.pop() ?? '';
         for (const block of blocks) {
           let eventType = 'message';
           let eventData = '';
-          for (const line of block.split('\\n')) {
+          for (const line of block.split('\n')) {
             if (line.startsWith('event: ')) eventType = line.slice(7).trim();
             if (line.startsWith('data: ')) eventData = line.slice(6).trim();
           }

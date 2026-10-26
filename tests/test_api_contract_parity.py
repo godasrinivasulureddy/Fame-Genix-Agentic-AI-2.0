@@ -4,8 +4,9 @@ from tests.conftest import auth_headers, register
 
 def test_rag_retrieve_endpoint(client):
     """Test POST /api/v1/rag/retrieve endpoint expected by frontend."""
-    # 1. Unauthenticated request should still work or require auth depending on design
-    resp = client.post("/api/v1/rag/retrieve", json={"query": "chest pain dyspnea"})
+    # Requires authentication to prevent external API quota abuse
+    token = register(client, "rag.tester@famegenix.org", "PATIENT", "RAG Tester")
+    resp = client.post("/api/v1/rag/retrieve", json={"query": "chest pain dyspnea"}, headers=auth_headers(token))
     assert resp.status_code == 200
     data = resp.json()["data"]
     assert isinstance(data, list)
@@ -15,6 +16,10 @@ def test_rag_retrieve_endpoint(client):
     assert "excerpt" in first
     assert "publisher" in first
     assert "score" in first
+
+    # Unauthenticated request rejected with 401
+    unauth = client.post("/api/v1/rag/retrieve", json={"query": "chest pain dyspnea"})
+    assert unauth.status_code == 401
 
 
 def test_patient_direct_assessment_and_insight_flow(client):

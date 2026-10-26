@@ -372,11 +372,13 @@ def create_direct_assessment(
     from app.assessments.router import _serialize as serialize_assessment
     from app.risk.safety.rules import RULES
 
-    # 1. Record vitals as DeviceReading if provided
-    device_id = "patient-direct-entry"
+    # 1. Ensure a direct-entry device exists for patient vitals (FK compliance)
     dev = db.query(Device).filter(Device.patient_id == patient.id).first()
-    if dev:
-        device_id = dev.id
+    if not dev:
+        dev = Device(patient_id=patient.id, type="GENERIC_DEVICE", status="SIMULATED")
+        db.add(dev)
+        db.flush()
+    device_id = dev.id
 
     vitals_dict = payload.vitals or {}
     for metric, val in vitals_dict.items():
@@ -425,39 +427,21 @@ def create_direct_assessment(
         if latest_v:
             serialized["vitals"] = latest_v
 
-    # Format triggered safety rules for frontend TriggeredSafetyRule interface
+    # Map authoritative safety-engine rules to the frontend TriggeredSafetyRule shape.
     triggered_rules = []
-    v = serialized.get("vitals", {})
-    if v.get("spo2") is not None and v["spo2"] < 90:
+    sev_map = {
+        "POSSIBLE_EMERGENCY": "POSSIBLE_EMERGENCY",
+        "URGENT": "URGENT",
+        "ROUTINE_REVIEW": "ROUTINE_REVIEW",
+    }
+    for rule in getattr(assessment, "_triggered_safety_rules", []) or []:
+        sev = rule.get("severity", "")
         triggered_rules.append({
-            "rule_id": "RF-001",
-            "condition": "spo2 < 90",
-            "reason": "Simulated SpO2 below 90 — severe hypoxemia threshold.",
-            "forced_care_level": "POSSIBLE_EMERGENCY"
+            "rule_id": rule.get("rule_id", ""),
+            "condition": rule.get("condition", ""),
+            "reason": rule.get("reason", ""),
+            "forced_care_level": sev_map.get(sev, sev),
         })
-    if v.get("heart_rate") is not None and v["heart_rate"] > 140:
-        triggered_rules.append({
-            "rule_id": "RF-003",
-            "condition": "heart_rate > 140",
-            "reason": "Simulated heart rate above 140 BPM.",
-            "forced_care_level": "URGENT"
-        })
-    for s in payload.symptoms:
-        sname = s.name.lower()
-        if any(kw in sname for kw in ["breath", "dyspnea", "suffocat"]):
-            triggered_rules.append({
-                "rule_id": "RF-004",
-                "condition": "breathing_difficulty_reported",
-                "reason": "Patient-reported severe breathing difficulty.",
-                "forced_care_level": "URGENT"
-            })
-        if any(kw in sname for kw in ["chest pain", "angina", "tightness", "pressure"]):
-            triggered_rules.append({
-                "rule_id": "RF-005",
-                "condition": "chest_pain_severe",
-                "reason": "Patient-reported severe chest pain.",
-                "forced_care_level": "POSSIBLE_EMERGENCY"
-            })
     serialized["triggered_safety_rules"] = triggered_rules
 
     return ok(serialized)

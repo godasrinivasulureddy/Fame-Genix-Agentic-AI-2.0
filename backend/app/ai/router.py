@@ -38,27 +38,38 @@ async def explain_assessment(payload: AssessmentExplainRequest, db: Session = De
 
 
 @router.post("/patient-insight")
-async def generate_patient_insight(payload: PatientInsightRequest, db: Session = Depends(get_db)):
+async def generate_patient_insight(
+    payload: PatientInsightRequest,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    from app.db.models import RiskAssessment, RiskFactor, Patient, SymptomSession, SymptomEntry
+    from app.patients.service import assert_can_view_patient
+    from app.core.exceptions import app_error
+
     if payload.assessment_id:
-        from app.db.models import RiskAssessment, RiskFactor, Patient, SymptomSession, SymptomEntry
         a = db.query(RiskAssessment).filter(RiskAssessment.id == payload.assessment_id).first()
-        if a:
-            payload.risk_score = a.risk_score
-            payload.confidence_score = a.confidence_score
-            payload.care_level = a.care_level
-            factors = db.query(RiskFactor).filter(RiskFactor.assessment_id == a.id).all()
-            if factors:
-                payload.top_factors = [f.factor_name for f in factors]
-            if a.session_id:
-                entries = db.query(SymptomEntry).filter(SymptomEntry.session_id == a.session_id).all()
-                if entries:
-                    payload.concepts = [e.concept for e in entries]
-            patient = db.query(Patient).filter(Patient.id == a.patient_id).first()
-            if patient:
-                payload.patient_profile = f"{patient.full_name}, Age: {patient.age or 'N/A'}, Conditions: {patient.known_conditions or 'None'}"
+        if not a:
+            raise app_error("NOT_FOUND", "Assessment not found.")
+        patient = db.query(Patient).filter(Patient.id == a.patient_id).first()
+        if not patient:
+            raise app_error("PATIENT_NOT_FOUND", "Patient not found for assessment.")
+        assert_can_view_patient(user, patient)
+
+        payload.risk_score = a.risk_score
+        payload.confidence_score = a.confidence_score
+        payload.care_level = a.care_level
+        factors = db.query(RiskFactor).filter(RiskFactor.assessment_id == a.id).all()
+        if factors:
+            payload.top_factors = [f.factor_name for f in factors]
+        if a.session_id:
+            entries = db.query(SymptomEntry).filter(SymptomEntry.session_id == a.session_id).all()
+            if entries:
+                payload.concepts = [e.concept for e in entries]
+        payload.patient_profile = f"{patient.full_name}, Age: {patient.age or 'N/A'}, Conditions: {patient.known_conditions or 'None'}"
 
     result = await ai_service.generate_patient_insight(payload)
-    record_audit(db, None, "PATIENT", "AI_PATIENT_INSIGHT", "patient_insight", str(payload.risk_score))
+    record_audit(db, user.id, user.role, "AI_PATIENT_INSIGHT", "patient_insight", str(payload.risk_score))
     res_dict = result.model_dump()
     if hasattr(result, "specialist") and hasattr(result.specialist, "specialty"):
         res_dict["suggested_specialty"] = result.specialist.specialty

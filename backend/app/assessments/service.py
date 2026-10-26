@@ -211,6 +211,7 @@ def run_assessment(db: Session, patient_id: str, session_id: str | None = None) 
 
     db.commit()
     db.refresh(assessment)
+    assessment._triggered_safety_rules = fused["triggered_safety_rules"]
 
     event_bus.publish(RISK_ASSESSMENT_CREATED, {
         "patient_id": patient_id, "assessment_id": assessment.id,
