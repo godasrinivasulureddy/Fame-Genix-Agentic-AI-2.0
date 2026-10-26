@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+﻿from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.response import ok
@@ -132,3 +132,24 @@ def delete_conversation(conv_id: str, db: Session = Depends(get_db)):
     db.query(ChatConversation).filter(ChatConversation.id == conv_id).delete()
     db.commit()
     return ok({"status": "deleted"})
+
+@router.post("/multi-agent/consensus")
+def generate_multi_agent_clinical_consensus(
+    payload: dict,
+    user: User = Depends(get_current_user)
+):
+    from app.agents.specialized_society import multi_agent_society
+    symptom_text = payload.get("symptom_text", "")
+    vitals = payload.get("vitals", {})
+    conditions = payload.get("conditions")
+    allergies = payload.get("allergies")
+    lab_values = payload.get("lab_values", {})
+
+    consensus = multi_agent_society.analyze_complex_case(
+        symptom_text=symptom_text,
+        vitals=vitals,
+        patient_conditions=conditions,
+        allergies=allergies,
+        lab_values=lab_values
+    )
+    return ok(consensus.model_dump())
