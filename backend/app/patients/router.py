@@ -12,6 +12,7 @@ from app.patients.schemas import (
     PatientUpdate,
     PatientObservationCreate,
     PatientObservationOut,
+    DirectAssessmentRequest,
 )
 from app.patients.service import (assert_can_view_patient, build_timeline,
                                    get_patient_by_user, get_patient_or_404)
@@ -351,5 +352,114 @@ def ingest_patient_observations(
         "anomalies_detected": anomalies,
         "message": f"Successfully validated and recorded {len(saved_records)} telemetry observations."
     })
+
+
+@router.post("/me/assessments")
+def create_direct_assessment(
+    payload: DirectAssessmentRequest,
+    user: User = Depends(require_role(Role.PATIENT)),
+    db: Session = Depends(get_db)
+):
+    """
+    Direct multi-modal assessment creation endpoint.
+    Takes symptoms and vitals directly, records telemetry, and runs risk fusion.
+    """
+    patient = get_patient_by_user(db, user)
+
+    from app.db.models import Device, DeviceReading, SymptomSession, SymptomEntry
+    from app.risk.baseline import update_baseline
+    from app.assessments.service import run_assessment
+    from app.assessments.router import _serialize as serialize_assessment
+    from app.risk.safety.rules import RULES
+
+    # 1. Record vitals as DeviceReading if provided
+    device_id = "patient-direct-entry"
+    dev = db.query(Device).filter(Device.patient_id == patient.id).first()
+    if dev:
+        device_id = dev.id
+
+    vitals_dict = payload.vitals or {}
+    for metric, val in vitals_dict.items():
+        if val is not None:
+            norm_metric = metric.lower().strip()
+            unit = "%" if norm_metric == "spo2" else "bpm" if norm_metric == "heart_rate" else "/min" if norm_metric == "respiratory_rate" else "C"
+            db_reading = DeviceReading(
+                device_id=device_id,
+                patient_id=patient.id,
+                metric=norm_metric,
+                value=float(val),
+                unit=unit,
+                source_type="PATIENT_ENTERED",
+                quality="GOOD",
+            )
+            db.add(db_reading)
+            update_baseline(db, patient.id, norm_metric, float(val))
+    db.commit()
+
+    # 2. Record symptoms session if provided
+    session_id = None
+    if payload.symptoms:
+        raw_text = "; ".join([f"{s.name} ({s.severity})" for s in payload.symptoms])
+        session = SymptomSession(patient_id=patient.id, raw_text=raw_text)
+        db.add(session)
+        db.flush()
+        session_id = session.id
+        for s in payload.symptoms:
+            concept_name = s.name.lower().replace(" ", "_")
+            db.add(SymptomEntry(session_id=session.id, concept=concept_name, severity=s.severity.lower()))
+        db.commit()
+
+    # 3. Run assessment
+    assessment = run_assessment(db, patient.id, session_id=session_id)
+    serialized = serialize_assessment(assessment, db)
+
+    # Attach vitals for frontend Vitals interface
+    if vitals_dict:
+        serialized["vitals"] = {k: float(v) for k, v in vitals_dict.items() if v is not None}
+    else:
+        latest_v = {}
+        for m in ["heart_rate", "spo2", "respiratory_rate", "temperature"]:
+            r = db.query(DeviceReading).filter(DeviceReading.patient_id == patient.id, DeviceReading.metric == m).order_by(DeviceReading.recorded_at.desc()).first()
+            if r:
+                latest_v[m] = r.value
+        if latest_v:
+            serialized["vitals"] = latest_v
+
+    # Format triggered safety rules for frontend TriggeredSafetyRule interface
+    triggered_rules = []
+    v = serialized.get("vitals", {})
+    if v.get("spo2") is not None and v["spo2"] < 90:
+        triggered_rules.append({
+            "rule_id": "RF-001",
+            "condition": "spo2 < 90",
+            "reason": "Simulated SpO2 below 90 — severe hypoxemia threshold.",
+            "forced_care_level": "POSSIBLE_EMERGENCY"
+        })
+    if v.get("heart_rate") is not None and v["heart_rate"] > 140:
+        triggered_rules.append({
+            "rule_id": "RF-003",
+            "condition": "heart_rate > 140",
+            "reason": "Simulated heart rate above 140 BPM.",
+            "forced_care_level": "URGENT"
+        })
+    for s in payload.symptoms:
+        sname = s.name.lower()
+        if any(kw in sname for kw in ["breath", "dyspnea", "suffocat"]):
+            triggered_rules.append({
+                "rule_id": "RF-004",
+                "condition": "breathing_difficulty_reported",
+                "reason": "Patient-reported severe breathing difficulty.",
+                "forced_care_level": "URGENT"
+            })
+        if any(kw in sname for kw in ["chest pain", "angina", "tightness", "pressure"]):
+            triggered_rules.append({
+                "rule_id": "RF-005",
+                "condition": "chest_pain_severe",
+                "reason": "Patient-reported severe chest pain.",
+                "forced_care_level": "POSSIBLE_EMERGENCY"
+            })
+    serialized["triggered_safety_rules"] = triggered_rules
+
+    return ok(serialized)
 
 

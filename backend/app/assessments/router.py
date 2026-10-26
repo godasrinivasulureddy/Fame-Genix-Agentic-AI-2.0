@@ -115,3 +115,9 @@ def get_model_metrics(user: User = Depends(get_current_user)):
     from app.risk.ml_model import get_metrics
     return ok(get_metrics())
 
+
+@router.get("/safety/rules")
+def get_safety_rules():
+    from app.risk.safety.rules import RULES, RULESET_VERSION
+    return ok({"ruleset_version": RULESET_VERSION, "rules": RULES})
+

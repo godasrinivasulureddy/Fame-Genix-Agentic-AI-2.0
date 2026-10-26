@@ -126,9 +126,10 @@ class SpecialistGuidance(BaseModel):
 
 
 class PatientInsightRequest(BaseModel):
-    risk_score: float = Field(..., ge=0, le=100)
-    confidence_score: float = Field(..., ge=0, le=100)
-    care_level: str
+    assessment_id: Optional[str] = None
+    risk_score: Optional[float] = Field(default=0.0, ge=0, le=100)
+    confidence_score: Optional[float] = Field(default=80.0, ge=0, le=100)
+    care_level: Optional[str] = "STABLE"
     top_factors: List[str] = []
     symptom_text: Optional[str] = None
     concepts: List[str] = []

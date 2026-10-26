@@ -39,9 +39,30 @@ async def explain_assessment(payload: AssessmentExplainRequest, db: Session = De
 
 @router.post("/patient-insight")
 async def generate_patient_insight(payload: PatientInsightRequest, db: Session = Depends(get_db)):
+    if payload.assessment_id:
+        from app.db.models import RiskAssessment, RiskFactor, Patient, SymptomSession, SymptomEntry
+        a = db.query(RiskAssessment).filter(RiskAssessment.id == payload.assessment_id).first()
+        if a:
+            payload.risk_score = a.risk_score
+            payload.confidence_score = a.confidence_score
+            payload.care_level = a.care_level
+            factors = db.query(RiskFactor).filter(RiskFactor.assessment_id == a.id).all()
+            if factors:
+                payload.top_factors = [f.factor_name for f in factors]
+            if a.session_id:
+                entries = db.query(SymptomEntry).filter(SymptomEntry.session_id == a.session_id).all()
+                if entries:
+                    payload.concepts = [e.concept for e in entries]
+            patient = db.query(Patient).filter(Patient.id == a.patient_id).first()
+            if patient:
+                payload.patient_profile = f"{patient.full_name}, Age: {patient.age or 'N/A'}, Conditions: {patient.known_conditions or 'None'}"
+
     result = await ai_service.generate_patient_insight(payload)
     record_audit(db, None, "PATIENT", "AI_PATIENT_INSIGHT", "patient_insight", str(payload.risk_score))
-    return ok(result.model_dump())
+    res_dict = result.model_dump()
+    if hasattr(result, "specialist") and hasattr(result.specialist, "specialty"):
+        res_dict["suggested_specialty"] = result.specialist.specialty
+    return ok(res_dict)
 
 
 @router.post("/chat")

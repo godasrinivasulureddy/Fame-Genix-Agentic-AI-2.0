@@ -82,3 +82,13 @@ class PatientObservationOut(BaseModel):
     anomalies_detected: int = 0
     message: str = "Observations recorded successfully."
 
+
+class DirectAssessmentSymptom(BaseModel):
+    name: str
+    severity: str = "moderate"
+
+
+class DirectAssessmentRequest(BaseModel):
+    symptoms: list[DirectAssessmentSymptom] = []
+    vitals: dict[str, float] | None = None
+
