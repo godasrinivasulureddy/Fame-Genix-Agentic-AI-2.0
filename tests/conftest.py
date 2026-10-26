@@ -3,6 +3,7 @@ import sys
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", "backend"))
 os.environ["DATABASE_URL"] = "sqlite:///:memory:"
+os.environ["JWT_SECRET"] = "test-only-secret-key-for-local-pytest-suite-runs-only"
 
 import pytest
 from fastapi.testclient import TestClient

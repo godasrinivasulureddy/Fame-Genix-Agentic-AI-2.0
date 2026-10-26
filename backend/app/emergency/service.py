@@ -10,17 +10,6 @@ from app.db.models import (EMERGENCY_TRANSITIONS, AmbulanceAssignment,
                             DeviceReading, EmergencyCase, EmergencyCaseEvent,
                             EmergencyStatus, HospitalHandoff)
 
-# Forward sequence used by the manual "advance" demo control once dispatched.
-ADVANCE_SEQUENCE = [
-    EmergencyStatus.DISPATCHED,
-    EmergencyStatus.EN_ROUTE,
-    EmergencyStatus.ON_SCENE,
-    EmergencyStatus.TRANSPORTING,
-    EmergencyStatus.HOSPITAL_REACHED,
-    EmergencyStatus.COMPLETED,
-]
-
-
 def _snapshot_measurements(db: Session, patient_id: str) -> dict:
     metrics = ["heart_rate", "spo2", "respiratory_rate", "temperature", "voc_index"]
     snapshot = {}
@@ -111,14 +100,20 @@ def advance(db: Session, case: EmergencyCase) -> EmergencyCase:
     if case.status not in EMERGENCY_TRANSITIONS or not EMERGENCY_TRANSITIONS[case.status]:
         raise app_error("INVALID_STATE_TRANSITION", f"No further transitions from {case.status}.")
 
-    current_status = case.status
-    if current_status == "PATIENT_REACHED":
-        current_status = "ON_SCENE"
-
-    current_index = ADVANCE_SEQUENCE.index(current_status) if current_status in ADVANCE_SEQUENCE else -1
-    next_status = ADVANCE_SEQUENCE[current_index + 1] if current_index + 1 < len(ADVANCE_SEQUENCE) else None
+    next_states = EMERGENCY_TRANSITIONS.get(case.status, [])
+    # Manual advance is only for the linear ambulance workflow. Review,
+    # verification, dispatch, and cancellation require their dedicated actions.
+    advanceable = {
+        EmergencyStatus.DISPATCHED,
+        EmergencyStatus.EN_ROUTE,
+        EmergencyStatus.ON_SCENE,
+        EmergencyStatus.TRANSPORTING,
+        EmergencyStatus.HOSPITAL_REACHED,
+        EmergencyStatus.COMPLETED,
+    }
+    next_status = next((status for status in next_states if status in advanceable), None)
     if next_status is None:
-        raise app_error("INVALID_STATE_TRANSITION", "Case already complete.")
+        raise app_error("INVALID_STATE_TRANSITION", f"No manual advance from {case.status}.")
 
     case = _transition(db, case, next_status, f"ADVANCED_TO_{next_status}", {})
 

@@ -37,7 +37,21 @@ async def event_generator(request: Request, user: User) -> AsyncGenerator[str, N
         if current_len > last_idx:
             for i in range(last_idx, current_len):
                 entry = event_bus.log[i]
-                yield f"event: {entry.get('event', 'message')}\ndata: {json.dumps(entry.get('payload', {}))}\n\n"
+                payload = entry.get("payload", {})
+
+                # Tenant / Role isolation:
+                # Patients only receive events where payload patient_id matches their own
+                if user.role == "PATIENT":
+                    from app.db.session import SessionLocal
+                    from app.db.models import Patient
+                    with SessionLocal() as s:
+                        p = s.query(Patient).filter(Patient.user_id == user.id).first()
+                        p_id = p.id if p else None
+                    event_pid = payload.get("patient_id")
+                    if event_pid and p_id and event_pid != p_id:
+                        continue
+
+                yield f"event: {entry.get('event', 'message')}\ndata: {json.dumps(payload)}\n\n"
             last_idx = current_len
 
         await asyncio.sleep(1.0)

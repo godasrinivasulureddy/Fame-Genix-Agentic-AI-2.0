@@ -17,7 +17,7 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite:///{_DEFAULT_SQLITE_PATH}")
 
-    JWT_SECRET: str = os.getenv("JWT_SECRET", "fame_genix_production_secret_key_32_bytes_long_safe_hs256")
+    JWT_SECRET: str = os.getenv("JWT_SECRET", "")
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours for development
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
