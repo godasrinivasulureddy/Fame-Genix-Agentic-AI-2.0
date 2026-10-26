@@ -1,9 +1,77 @@
 @import "tailwindcss";
+
 @theme {
+  --color-clinic-navy: #123b4e;
+  --color-clinic-teal: #00b39e;
+  --color-clinic-teal-light: #d9f6ef;
+  --color-clinic-teal-dark: #0a7b6c;
+  --color-clinic-cream: #fbfcfe;
+  --color-clinic-ink: #0f2c38;
+  --color-clinic-muted: #6a8a94;
+
   --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: "JetBrains Mono", "SF Mono", Consolas, Menlo, monospace;
 }
-html, body, #root { min-height: 100%; }
-body { @apply bg-slate-950 text-slate-100 font-sans antialiased; }
-button, input, select, textarea, a { @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40; }
-button, select, input { min-height: 44px; }
+
+html, body, #root {
+  min-height: 100%;
+}
+
+body {
+  @apply bg-[#fbfcfe] text-[#0f2c38] font-sans antialiased;
+}
+
+button,
+input,
+select,
+textarea,
+a {
+  @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-teal-400/50;
+}
+
+button,
+select,
+input {
+  min-height: 44px;
+}
+
+.section-pad {
+  @apply px-4 sm:px-8 py-12 sm:py-16;
+}
+
+.section-title {
+  @apply mb-1 text-[10px] font-bold uppercase tracking-[0.2em] text-teal-600 sm:text-[11px];
+}
+
+.section-heading {
+  @apply mt-0 mb-4 text-3xl font-bold tracking-tight text-[#0f2c38] sm:text-5xl md:text-6xl;
+}
+
+.section-copy {
+  @apply mt-0 max-w-2xl text-sm leading-relaxed text-[#6a8a94] sm:text-base;
+}
+
+.clinic-btn-primary {
+  @apply rounded-xl bg-[#00b39e] px-5 py-2.5 text-sm font-bold text-white shadow-sm shadow-[#00b39e]/30 hover:bg-[#0a7b6c] transition;
+}
+
+.clinic-btn-ghost {
+  @apply rounded-xl border border-[#21262D] bg-white px-5 py-2.5 text-sm font-bold text-[#0f2c38] shadow-sm hover:bg-[#f2f6f9] transition;
+}
+
+.clinic-badge {
+  @apply inline-flex items-center gap-1.5 rounded-lg border border-[#21262D] bg-white px-3 py-1.5 text-xs font-bold text-[#0f2c38] shadow-sm;
+}
+
+.clinic-card {
+  @apply rounded-2xl border border-[#21262D] bg-white p-5 sm:p-6 shadow-sm shadow-[#000000]/25;
+}
+
+.clinic-input {
+  @apply w-full rounded-xl border border-[#21262D] bg-white px-3 text-sm text-[#0f2c38] shadow-sm transition;
+}
+
+.clinic-shadow {
+  box-shadow: 0 4px 20px -4px rgba(0, 0, 0, 0.08);
+}
+
