@@ -142,8 +142,13 @@ class Patient(Base):
     profile_picture_url = Column(Text, nullable=True)
     known_conditions = Column(Text, nullable=True)  # comma-separated / JSON string
     family_history = Column(Text, nullable=True)
+    allergies = Column(Text, nullable=True)  # JSON or comma-separated list
     emergency_contact_name = Column(String, nullable=True)
     emergency_contact_phone = Column(String, nullable=True)
+    secondary_contact_name = Column(String, nullable=True)
+    secondary_contact_phone = Column(String, nullable=True)
+    emergency_contact_relationship = Column(String, nullable=True)
+    secondary_contact_relationship = Column(String, nullable=True)
     blood_group = Column(String, nullable=True)
     created_at = Column(DateTime, default=utcnow)
 
