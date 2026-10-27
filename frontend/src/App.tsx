@@ -30,7 +30,7 @@ function AuthModal({ onDone, onClose, presetEmail }: { onDone: () => void; onClo
       <form onSubmit={(e) => void submit(e)} className="space-y-3">
         <input className={fieldCls} type="email" required aria-label="Email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
         <input className={fieldCls} type="password" required aria-label="Password" placeholder="Password" value={pw} onChange={(e) => setPw(e.target.value)} />
-        <p className="font-mono text-[11px] text-[#a9a99f]">Demo password prefilled: <span className="font-bold text-[#faf9f5]">FameGenix#2026</span></p>
+        <p className="font-mono text-[11px] text-slate-400">Demo password prefilled: <span className="font-bold text-white">FameGenix#2026</span></p>
         {err && <ErrorState message={err} />}
         <Btn type="submit" disabled={busy} className="w-full">{busy ? 'Signing in…' : 'Sign in'}</Btn>
       </form>
@@ -46,11 +46,22 @@ function Landing({ onExplore, onSignIn }: { onExplore: (r: Role) => void; onSign
         <Btn tone="ghost" onClick={onSignIn}>Sign In</Btn>
       </header>
       <main className="mx-auto max-w-6xl space-y-10 px-4 py-10 sm:px-8 sm:py-16">
-        <section>
-          <Overline>Continuous telemetry • Deterministic risk rules • RAG evidence</Overline>
-          <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-white sm:text-5xl md:text-6xl">Algorithmic Triage, Vitals Drift Detection, and Emergency Handover</h1>
-          <p className="mt-4 max-w-2xl text-xs leading-relaxed text-slate-300 sm:text-sm">Multimodal inputs are scored by the FAME-GENIX backend; deterministic safety rules (RF-001 to RF-007) outrank the AI model, and every escalation ends in a structured handover passport.</p>
-          <div className="mt-6 flex flex-wrap gap-2">{PORTALS.slice(0, 4).map((p) => <Btn key={p.role} onClick={() => onExplore(p.role)}>Explore as {p.label}</Btn>)}</div>
+        <section className="grid gap-8 items-center md:grid-cols-12">
+          <div className="md:col-span-7">
+            <Overline>Continuous telemetry • Deterministic risk rules • RAG evidence</Overline>
+            <h1 className="mt-3 text-3xl font-extrabold tracking-tight text-white sm:text-5xl md:text-5xl">Algorithmic Triage, Vitals Drift Detection, and Emergency Handover</h1>
+            <p className="mt-4 max-w-xl text-xs leading-relaxed text-slate-300 sm:text-sm">Multimodal inputs are scored by the FAME-GENIX backend; deterministic safety rules (RF-001 to RF-007) outrank the AI model, and every escalation ends in a structured handover passport.</p>
+            <div className="mt-6 flex flex-wrap gap-2">{PORTALS.slice(0, 4).map((p) => <Btn key={p.role} onClick={() => onExplore(p.role)}>Explore as {p.label}</Btn>)}</div>
+          </div>
+          <div className="flex justify-center md:col-span-5">
+            <div className="relative rounded-2xl border border-slate-800 bg-slate-900/80 p-4 shadow-xl">
+              <img src="/doctor.png" alt="Clinical Specialist" className="h-64 sm:h-72 w-auto object-contain drop-shadow-md" />
+              <div className="mt-3 flex items-center justify-between border-t border-slate-800 pt-2 text-[11px] text-slate-400">
+                <span className="font-semibold text-white">24/7 Verified Triage</span>
+                <span className="font-mono text-cyan-400">Decision Support</span>
+              </div>
+            </div>
+          </div>
         </section>
         <section><Overline>Pipeline</Overline>
           <ol className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-6">{['Understand', 'Observe', 'Compare', 'Detect', 'Explain', 'Escalate'].map((s, i) => (
