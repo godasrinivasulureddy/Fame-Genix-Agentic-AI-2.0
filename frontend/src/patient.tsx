@@ -19,6 +19,7 @@ import {
   Card,
   ClinicalDossierModal,
   ErrorState,
+  EvidenceChainNode,
   EvidenceList,
   HandoverPassportModal,
   Loading,
@@ -478,13 +479,13 @@ export default function PatientView() {
       {sosErr && <ErrorState message={sosErr} />}
 
       {/* 2. Primary Telemetry Metric Strip */}
-      <Card>
-        <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+      <div className="rounded-3xl border border-[#3e3e38] bg-[#2c2c2b] p-5 shadow-lg">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
           <div>
             <Overline>Physiological Telemetry & FAME Wearable Interface</Overline>
-            <h3 className="text-base font-bold text-[#faf9f5]">Live Stream Telemetry Gauges</h3>
+            <h3 className="text-base font-bold text-[#faf9f5]">Continuous Telemetry & Anomaly Detection</h3>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs text-[#a9a99f]">Scenarios:</span>
             {Object.keys(PRESETS).map((k) => (
               <button
@@ -493,7 +494,7 @@ export default function PatientView() {
                   setVit(PRESETS[k]);
                   setSimulated(true);
                 }}
-                className="rounded-lg border border-[#3e3e38] bg-[#1b1b19] px-2 py-1 font-mono text-[10px] text-[#d97757] hover:border-[#d97757]"
+                className="rounded-lg border border-[#3e3e38] bg-[#1b1b19] px-2 py-1 font-mono text-[10px] text-[#d97757] hover:border-[#d97757] transition"
               >
                 {k.replace(/_/g, ' ')}
               </button>
@@ -507,7 +508,7 @@ export default function PatientView() {
             <div key={m.key} className="rounded-2xl border border-[#3e3e38] bg-[#1b1b19] p-4 shadow-inner">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-[#a9a99f]">{m.label}</span>
-                <span className="text-[11px] text-[#a9a99f]">{m.unit}</span>
+                <span className="font-mono text-[10px] text-[#a9a99f]">{m.unit}</span>
               </div>
               <p className="font-mono text-3xl font-extrabold tabular-nums text-[#d97757] my-1">
                 {vit[m.key] ?? '—'}
@@ -530,183 +531,275 @@ export default function PatientView() {
             </div>
           ))}
         </div>
-      </Card>
+      </div>
 
-      {/* 3. Multi-Modal Health Intake Core */}
-      <Card>
-        <Overline>Multi-Modal Clinical Intake</Overline>
-        <h3 className="text-base font-bold text-[#faf9f5] mt-1 mb-3">Natural Language & Voice Concept Intake</h3>
+      {/* 3. Asymmetric Split Layout: Intake (Left 45%) & Diagnostic Reasoning (Right 55%) */}
+      <div className="grid gap-6 lg:grid-cols-12">
+        {/* Left Column: Multimodal Clinical Intake */}
+        <div className="lg:col-span-5 space-y-5">
+          <div className="rounded-3xl border border-[#3e3e38] bg-[#2c2c2b] p-5 shadow-lg space-y-4">
+            <div>
+              <Overline>Multimodal Clinical Intake</Overline>
+              <h3 className="text-base font-bold text-[#faf9f5] mt-0.5">Symptom Expression & Voice Input</h3>
+              <p className="text-xs text-[#a9a99f] mt-1">
+                Enter your symptoms naturally or use speech dictation in English, Telugu, or Hindi.
+              </p>
+            </div>
 
-        <div className="space-y-4">
-          <div className="flex gap-2">
-            <input
-              className={fieldCls}
-              value={text}
-              placeholder="Describe your current symptoms (e.g. sharp chest pain, shortness of breath on exertion)"
-              aria-label="Symptom text"
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => e.key === 'Enter' && addSymptom()}
-            />
-            <select
-              aria-label="Severity"
-              className={`${fieldCls} w-auto text-xs`}
-              value={sev}
-              onChange={(e) => setSev(e.target.value)}
-            >
-              {SEVERITIES.map((s) => (
-                <option key={s} value={s}>
-                  {s}
-                </option>
-              ))}
-            </select>
-            <Btn tone="ghost" onClick={addSymptom}>
-              Add
-            </Btn>
-          </div>
-
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <VoiceInput onText={(t) => setText((x) => (x ? `${x} ` : '') + t)} />
-            <Btn
-              onClick={analyze}
-              disabled={busy || (!symptoms.length && !Object.values(vit).some(Boolean))}
-              className="text-sm px-6 py-2.5 font-extrabold"
-            >
-              {busy ? 'SYNTHESIZING MULTI-MODAL RISK…' : 'ANALYZE CLINICAL RISK'}
-            </Btn>
-          </div>
-
-          {symptoms.length > 0 && (
-            <div className="flex flex-wrap gap-2 pt-2 border-t border-[#3e3e38]">
-              {symptoms.map((s, i) => (
-                <button
-                  key={i}
-                  onClick={() => setSymptoms((prev) => prev.filter((_, idx) => idx !== i))}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-[#3e3e38] bg-[#1b1b19] px-2.5 py-1 text-xs font-semibold text-[#faf9f5] hover:border-[#fb7185] hover:text-[#fb7185]"
+            <div className="space-y-3">
+              <div className="flex gap-2">
+                <input
+                  className={fieldCls}
+                  value={text}
+                  placeholder="Describe symptoms (e.g. sharp chest pain, shortness of breath)"
+                  aria-label="Symptom text"
+                  onChange={(e) => setText(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && addSymptom()}
+                />
+                <select
+                  aria-label="Severity"
+                  className={`${fieldCls} w-auto text-xs`}
+                  value={sev}
+                  onChange={(e) => setSev(e.target.value)}
                 >
-                  <span>{s.name}</span>
-                  <span className="font-mono text-[10px] text-[#d97757]">({s.severity})</span>
-                  <span>✕</span>
-                </button>
-              ))}
+                  {SEVERITIES.map((s) => (
+                    <option key={s} value={s}>
+                      {s}
+                    </option>
+                  ))}
+                </select>
+                <Btn tone="ghost" onClick={addSymptom} className="text-xs">
+                  Add
+                </Btn>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                <VoiceInput onText={(t) => setText((x) => (x ? `${x} ` : '') + t)} />
+              </div>
+
+              {symptoms.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-2 border-t border-[#3e3e38]">
+                  {symptoms.map((s, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setSymptoms((prev) => prev.filter((_, idx) => idx !== i))}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-[#3e3e38] bg-[#1b1b19] px-2.5 py-1 text-xs font-semibold text-[#faf9f5] hover:border-[#fb7185] hover:text-[#fb7185] transition"
+                    >
+                      <span>{s.name}</span>
+                      <span className="font-mono text-[10px] text-[#d97757]">({s.severity})</span>
+                      <span>✕</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {err && <ErrorState message={err} />}
+
+              <Btn
+                onClick={analyze}
+                disabled={busy || (!symptoms.length && !Object.values(vit).some(Boolean))}
+                className="w-full text-sm py-3 font-extrabold tracking-wide uppercase shadow-lg shadow-[#d97757]/20"
+              >
+                {busy ? 'SYNTHESIZING MULTI-MODAL RISK…' : 'ANALYZE CLINICAL RISK'}
+              </Btn>
+            </div>
+          </div>
+
+          {/* Multimodal File Upload Panels */}
+          <div className="space-y-3">
+            <Upload kind="reports" title="Lab Report OCR & Reference Range Parser" accept=".pdf,.jpg,.jpeg,.png" />
+            <Upload kind="images" title="Optical Physical Assessment & Photo Analysis" accept=".jpg,.jpeg,.png" />
+          </div>
+        </div>
+
+        {/* Right Column: Structured Diagnostic Reasoning (Detected -> Means -> What to do) */}
+        <div className="lg:col-span-7 space-y-5">
+          {a ? (
+            <>
+              {/* Safety Rules Banner if triggered */}
+              <SafetyRules a={a} />
+
+              {/* 3-Tier Clinical Understanding Panel */}
+              <div className="rounded-3xl border border-[#3e3e38] bg-[#2c2c2b] p-6 shadow-xl space-y-6">
+                <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#3e3e38] pb-3">
+                  <div>
+                    <Overline>Diagnostic Risk Synthesis</Overline>
+                    <h3 className="text-lg font-bold text-[#faf9f5]">Algorithmic Acuity & Risk Breakdown</h3>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Btn tone="ghost" onClick={() => setPassport(true)} className="text-xs">
+                      Trauma Passport
+                    </Btn>
+                    <Btn tone="ghost" onClick={() => setSocietyOpen(true)} className="text-xs flex items-center gap-1">
+                      <Sparkles size={14} className="text-[#9c87f5]" /> Multi-Agent
+                    </Btn>
+                  </div>
+                </div>
+
+                {/* TIER 1: WHAT WAS DETECTED */}
+                <div className="rounded-2xl border border-[#3e3e38] bg-[#1b1b19] p-4 space-y-3">
+                  <div className="flex items-center gap-2">
+                    <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#d97757]/20 font-mono text-xs font-bold text-[#d97757]">
+                      1
+                    </span>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#faf9f5]">
+                      What The System Detected
+                    </h4>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+                    {VITAL_META.map((m) => (
+                      <div key={m.key} className="rounded-xl bg-[#2c2c2b] p-2.5">
+                        <span className="text-[10px] text-[#a9a99f]">{m.label}</span>
+                        <p className="font-mono text-sm font-bold text-[#faf9f5]">
+                          {vit[m.key] ? `${vit[m.key]} ${m.unit}` : 'Not measured'}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                  {symptoms.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      <span className="text-xs text-[#a9a99f]">Reported:</span>
+                      {symptoms.map((s, idx) => (
+                        <span
+                          key={idx}
+                          className="rounded-md border border-[#3e3e38] bg-[#2c2c2b] px-2 py-0.5 font-mono text-[11px] text-[#faf9f5]"
+                        >
+                          {s.name} ({s.severity})
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* TIER 2: WHAT IT MEANS */}
+                <div className="rounded-2xl border border-[#3e3e38] bg-[#1b1b19] p-4 space-y-4">
+                  <div className="flex items-center gap-2">
+                    <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#f2b955]/20 font-mono text-xs font-bold text-[#f2b955]">
+                      2
+                    </span>
+                    <h4 className="text-xs font-bold uppercase tracking-wider text-[#faf9f5]">
+                      What It Means (Clinical Acuity Tier)
+                    </h4>
+                  </div>
+
+                  <div className="grid items-center gap-6 sm:grid-cols-[auto_1fr]">
+                    <div className="mx-auto text-center">
+                      <RiskDonut score={a.risk_score} />
+                      <p className="mt-1 font-mono text-xs text-[#a9a99f]">
+                        Confidence: {a.confidence_score.toFixed(0)}%
+                      </p>
+                    </div>
+
+                    <div className="space-y-3">
+                      <div className="flex items-center gap-3">
+                        <RiskBadge level={a.care_level} />
+                        <span className="font-mono text-xs text-[#a9a99f]">Classification: {a.care_level}</span>
+                      </div>
+                      <Spectrum score={a.risk_score} />
+
+                      {a.top_factors?.length ? (
+                        <div className="space-y-1">
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-[#a9a99f]">
+                            Contributing Risk Biomarkers
+                          </p>
+                          <ul className="space-y-1 text-xs text-[#faf9f5]">
+                            {a.top_factors.map((f) => (
+                              <li
+                                key={f.factor_name}
+                                className="flex items-center justify-between rounded-lg bg-[#2c2c2b] px-3 py-1.5"
+                              >
+                                <span>{f.factor_name}</span>
+                                <span className="font-mono text-[#d97757]">
+                                  {f.direction.replace(/_/g, ' ')} · {f.contribution}
+                                </span>
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+
+                {/* TIER 3: WHAT THE PATIENT SHOULD DO */}
+                <div className="rounded-2xl border border-[#3e3e38] bg-[#1b1b19] p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="grid h-6 w-6 place-items-center rounded-lg bg-[#41d69a]/20 font-mono text-xs font-bold text-[#41d69a]">
+                        3
+                      </span>
+                      <h4 className="text-xs font-bold uppercase tracking-wider text-[#faf9f5]">
+                        What You Should Do Next
+                      </h4>
+                    </div>
+                    {insight?.explanation && <Speaker text={insight.explanation} />}
+                  </div>
+
+                  <p className="text-sm leading-relaxed text-[#faf9f5] bg-[#2c2c2b] p-3 rounded-xl border border-[#3e3e38]">
+                    {insight?.explanation ?? (busy ? 'Synthesizing explanation…' : 'No explanation available.')}
+                  </p>
+
+                  {/* Tele-Consultation Request Action */}
+                  <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-[#3e3e38]">
+                    <span className="text-xs text-[#a9a99f]">Request doctor review:</span>
+                    <select
+                      aria-label="Specialty"
+                      className={`${fieldCls} w-auto text-xs`}
+                      value={specialty}
+                      onChange={(e) => setSpecialty(e.target.value)}
+                    >
+                      {Array.from(new Set([specialty, ...SPECIALTIES])).map((s) => (
+                        <option key={s} value={s}>
+                          {s}
+                        </option>
+                      ))}
+                    </select>
+                    <Btn onClick={consult} className="text-xs">
+                      Book Tele-Consultation
+                    </Btn>
+                    {token && (
+                      <span className="rounded-xl border border-[#41d69a] bg-[#41d69a]/10 px-2.5 py-1 font-mono text-xs font-bold text-[#41d69a]">
+                        Token: {token}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Evidence Chain Component */}
+                <EvidenceChainNode
+                  detectedSignal={symptoms[0]?.name ? `${symptoms[0].name} (${symptoms[0].severity})` : 'Normal Baseline'}
+                  clinicalRule={a.triggered_safety_rules?.[0]?.reason ?? 'Standard Acuity Fusion Model'}
+                  evidenceCitation={ev?.[0]?.title ?? 'AHA/ACC 2024 Guidelines for Acute Cardiac Care'}
+                  recommendedAction={a.care_level === 'POSSIBLE_EMERGENCY' ? 'Immediate EMS Dispatch' : 'Tele-consultation & Observation'}
+                />
+
+                {/* Primary Evidence Citations Drawer */}
+                <div className="rounded-2xl border border-[#3e3e38] bg-[#1b1b19] p-4">
+                  <Overline className="text-[#9c87f5]">
+                    Verified Literature Evidence & Citations (RAG + Tavily)
+                  </Overline>
+                  <div className="mt-3">
+                    {ev === undefined ? (
+                      <Loading label="Retrieving literature citations…" />
+                    ) : (
+                      <EvidenceList items={ev} />
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-[#3e3e38] bg-[#2c2c2b]/50 p-12 text-center min-h-[400px]">
+              <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[#1b1b19] border border-[#3e3e38] text-[#d97757] mb-3">
+                <Heart size={28} />
+              </div>
+              <h3 className="text-base font-bold text-[#faf9f5]">Awaiting Multi-Modal Clinical Intake</h3>
+              <p className="mt-1 text-xs text-[#a9a99f] max-w-sm">
+                Enter your symptoms, record voice dictation, or select a preset scenario on the left to generate algorithmic risk fusion.
+              </p>
             </div>
           )}
-
-          {err && <ErrorState message={err} />}
         </div>
-      </Card>
-
-      {/* 4. Diagnostic Risk Core & Explainable Output */}
-      {a && (
-        <>
-          <SafetyRules a={a} />
-
-          <Card>
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#3e3e38] pb-3 mb-4">
-              <div>
-                <Overline>Multi-Factor Risk Assessment Output</Overline>
-                <h3 className="text-lg font-bold text-[#faf9f5]">Algorithmic Acuity & Longitudinal Fusion</h3>
-              </div>
-              <div className="flex items-center gap-2">
-                <Btn tone="ghost" onClick={() => setPassport(true)} className="text-xs">
-                  Handover Passport
-                </Btn>
-                <Btn tone="ghost" onClick={() => setSocietyOpen(true)} className="text-xs flex items-center gap-1">
-                  <Sparkles size={14} className="text-[#9c87f5]" /> Multi-Agent Consensus
-                </Btn>
-              </div>
-            </div>
-
-            <div className="grid items-center gap-6 sm:grid-cols-[auto_1fr]">
-              <div className="mx-auto text-center">
-                <RiskDonut score={a.risk_score} />
-                <p className="mt-1 font-mono text-xs text-[#a9a99f]">
-                  Confidence: {a.confidence_score.toFixed(0)}%
-                </p>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <RiskBadge level={a.care_level} />
-                  <span className="font-mono text-xs text-[#a9a99f]">Care Tier: {a.care_level}</span>
-                </div>
-                <Spectrum score={a.risk_score} />
-
-                {a.top_factors?.length ? (
-                  <div className="space-y-1.5">
-                    <Overline>Biomarker & Clinical Factor Breakdown</Overline>
-                    <ul className="space-y-1 text-xs text-[#faf9f5]">
-                      {a.top_factors.map((f) => (
-                        <li
-                          key={f.factor_name}
-                          className="flex items-center justify-between rounded-lg bg-[#1b1b19] px-3 py-1.5"
-                        >
-                          <span>{f.factor_name}</span>
-                          <span className="font-mono text-[#d97757]">
-                            {f.direction.replace(/_/g, ' ')} · {f.contribution}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ) : null}
-              </div>
-            </div>
-          </Card>
-
-          {/* AI Plain Language Explanation */}
-          <Card>
-            <div className="flex items-center justify-between gap-2 border-b border-[#3e3e38] pb-2">
-              <Overline>Plain-Language Clinical Explanation (NVIDIA Nemotron / Gemini 2.5)</Overline>
-              {insight?.explanation && <Speaker text={insight.explanation} />}
-            </div>
-            <p className="mt-3 text-sm leading-relaxed text-[#faf9f5]">
-              {insight?.explanation ?? (busy ? 'Synthesizing explanation…' : 'No plain-language insight available.')}
-            </p>
-          </Card>
-
-          {/* Evidence Citations (RAG + Tavily) */}
-          <Card>
-            <Overline className="text-[#9c87f5]">
-              Verified Clinical Evidence & Clinical Guidelines (AHA, WHO, NICE, ADA, Tavily)
-            </Overline>
-            <div className="mt-3">
-              {ev === undefined ? <Loading label="Retrieving literature citations…" /> : <EvidenceList items={ev} />}
-            </div>
-          </Card>
-
-          {/* Specialist Consultation Booking */}
-          <Card>
-            <Overline>Care Escalation & Tele-Consultation Request</Overline>
-            <div className="mt-3 flex flex-wrap items-center gap-3">
-              <select
-                aria-label="Specialty"
-                className={`${fieldCls} w-auto text-xs`}
-                value={specialty}
-                onChange={(e) => setSpecialty(e.target.value)}
-              >
-                {Array.from(new Set([specialty, ...SPECIALTIES])).map((s) => (
-                  <option key={s} value={s}>
-                    {s}
-                  </option>
-                ))}
-              </select>
-              <Btn onClick={consult} className="text-xs">
-                Request Clinical Consultation
-              </Btn>
-              {token && (
-                <span className="rounded-xl border border-[#41d69a] bg-[#41d69a]/10 px-3 py-1.5 font-mono text-xs font-bold text-[#41d69a]">
-                  Consultation Token: {token}
-                </span>
-              )}
-            </div>
-          </Card>
-        </>
-      )}
-
-      {/* 5. Multimodal Image & Lab Document Extraction */}
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Upload kind="reports" title="Lab Report OCR & Reference Range Parser" accept=".pdf,.jpg,.jpeg,.png" />
-        <Upload kind="images" title="Optical Physical Assessment & Photo Analysis" accept=".jpg,.jpeg,.png" />
       </div>
 
       {/* Modals */}

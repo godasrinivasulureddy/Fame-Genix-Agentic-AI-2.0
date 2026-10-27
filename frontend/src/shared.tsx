@@ -18,6 +18,7 @@ import type {
   BluetoothDevice,
   CareLevel,
   EmergencyCase,
+  EmergencyStatus,
   Evidence,
   MultiAgentConsensus,
   Patient,
@@ -1015,3 +1016,196 @@ export const SecureNote = () => (
     Authenticated session
   </p>
 );
+
+export const Skeleton = ({ className = '' }: { className?: string }) => (
+  <div className={`animate-pulse rounded-xl bg-[#3e3e38]/60 ${className}`} />
+);
+
+export const LIFECYCLE_STAGES: EmergencyStatus[] = [
+  'DETECTED',
+  'UNDER_REVIEW',
+  'VERIFIED',
+  'DISPATCH_REQUESTED',
+  'DISPATCHED',
+  'EN_ROUTE',
+  'ON_SCENE',
+  'TRANSPORTING',
+  'HOSPITAL_REACHED',
+  'COMPLETED',
+];
+
+export function IncidentStepper({
+  currentStatus,
+  onSelectStatus,
+  editable = false,
+}: {
+  currentStatus: EmergencyStatus;
+  onSelectStatus?: (status: EmergencyStatus) => void;
+  editable?: boolean;
+}) {
+  const currentIndex = LIFECYCLE_STAGES.indexOf(currentStatus);
+
+  return (
+    <div className="w-full rounded-2xl border border-[#3e3e38] bg-[#1b1b19] p-4 shadow-sm">
+      <div className="flex items-center justify-between mb-3 border-b border-[#3e3e38] pb-2">
+        <div className="flex items-center gap-2">
+          <span className="h-2 w-2 rounded-full bg-[#d97757] animate-ping" />
+          <span className="font-mono text-xs font-bold uppercase tracking-wider text-[#faf9f5]">
+            10-Stage Emergency Dispatch State Machine
+          </span>
+        </div>
+        <span className="font-mono text-xs font-bold text-[#d97757]">
+          STAGE {currentIndex >= 0 ? currentIndex + 1 : 1} OF {LIFECYCLE_STAGES.length}
+        </span>
+      </div>
+
+      <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-5 lg:grid-cols-10">
+        {LIFECYCLE_STAGES.map((stage, idx) => {
+          const isDone = currentIndex > idx;
+          const isCurrent = currentIndex === idx;
+
+          return (
+            <button
+              key={stage}
+              type="button"
+              disabled={!editable}
+              onClick={() => editable && onSelectStatus?.(stage)}
+              className={`flex flex-col items-center justify-between rounded-xl border p-2 text-center transition ${
+                isCurrent
+                  ? 'border-[#d97757] bg-[#d97757]/15 text-[#faf9f5] ring-2 ring-[#d97757]/40 shadow-md'
+                  : isDone
+                  ? 'border-[#41d69a]/40 bg-[#41d69a]/10 text-[#41d69a]'
+                  : 'border-[#3e3e38] bg-[#2c2c2b] text-[#77766e] opacity-60'
+              } ${editable && !isCurrent ? 'hover:border-[#d97757] hover:opacity-100 cursor-pointer' : ''}`}
+            >
+              <span className="font-mono text-[9px] font-bold">
+                {isDone ? '✓' : `0${idx + 1}`}
+              </span>
+              <span className="mt-1 line-clamp-1 font-mono text-[10px] font-bold uppercase">
+                {stage.replace(/_/g, ' ')}
+              </span>
+              <span
+                className={`mt-1.5 h-1.5 w-full rounded-full ${
+                  isCurrent ? 'bg-[#d97757] animate-pulse' : isDone ? 'bg-[#41d69a]' : 'bg-[#3e3e38]'
+                }`}
+              />
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+export function EvidenceChainNode({
+  detectedSignal,
+  clinicalRule,
+  evidenceCitation,
+  recommendedAction,
+}: {
+  detectedSignal: string;
+  clinicalRule: string;
+  evidenceCitation: string;
+  recommendedAction: string;
+}) {
+  return (
+    <div className="rounded-2xl border border-[#3e3e38] bg-[#1b1b19] p-4 space-y-3">
+      <div className="flex items-center justify-between border-b border-[#3e3e38] pb-2">
+        <span className="font-mono text-[11px] font-bold text-[#d97757] uppercase tracking-wider">
+          Evidence-Grounded Reasoning Path
+        </span>
+        <span className="rounded-md border border-[#41d69a]/40 bg-[#41d69a]/10 px-2 py-0.5 font-mono text-[10px] text-[#41d69a]">
+          VERIFIED BY PRIMARY SOURCES
+        </span>
+      </div>
+
+      <div className="grid gap-2 sm:grid-cols-4 text-xs">
+        <div className="rounded-xl border border-[#3e3e38] bg-[#2c2c2b] p-2.5">
+          <p className="font-mono text-[10px] font-bold text-[#a9a99f] uppercase">1. Patient Signal</p>
+          <p className="mt-1 font-semibold text-[#faf9f5]">{detectedSignal}</p>
+        </div>
+        <div className="rounded-xl border border-[#3e3e38] bg-[#2c2c2b] p-2.5">
+          <p className="font-mono text-[10px] font-bold text-[#a9a99f] uppercase">2. Algorithmic Rule</p>
+          <p className="mt-1 font-semibold text-[#f2b955]">{clinicalRule}</p>
+        </div>
+        <div className="rounded-xl border border-[#3e3e38] bg-[#2c2c2b] p-2.5">
+          <p className="font-mono text-[10px] font-bold text-[#a9a99f] uppercase">3. Primary Evidence</p>
+          <p className="mt-1 font-semibold text-[#9c87f5]">{evidenceCitation}</p>
+        </div>
+        <div className="rounded-xl border border-[#3e3e38] bg-[#2c2c2b] p-2.5">
+          <p className="font-mono text-[10px] font-bold text-[#a9a99f] uppercase">4. Clinical Order</p>
+          <p className="mt-1 font-semibold text-[#41d69a]">{recommendedAction}</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function FieldProtocolChecklist({
+  protocols,
+  onToggle,
+}: {
+  protocols: Array<{ id: string; label: string; checked: boolean; required: boolean }>;
+  onToggle: (id: string) => void;
+}) {
+  const completedCount = protocols.filter((p) => p.checked).length;
+  const progressPct = Math.round((completedCount / protocols.length) * 100);
+
+  return (
+    <div className="rounded-2xl border border-[#3e3e38] bg-[#1b1b19] p-4 space-y-3">
+      <div className="flex items-center justify-between border-b border-[#3e3e38] pb-2">
+        <div>
+          <h4 className="text-xs font-bold uppercase tracking-wider text-[#faf9f5]">
+            Pre-Hospital Critical Resuscitation Checklist
+          </h4>
+          <p className="text-[10px] text-[#a9a99f]">Standardized STEMI / Trauma emergency protocols</p>
+        </div>
+        <span className="font-mono text-xs font-bold text-[#41d69a]">
+          {completedCount}/{protocols.length} ({progressPct}%)
+        </span>
+      </div>
+
+      <div className="h-2 w-full rounded-full bg-[#2c2c2b] overflow-hidden">
+        <div
+          className="h-full bg-[#41d69a] transition-all duration-300"
+          style={{ width: `${progressPct}%` }}
+        />
+      </div>
+
+      <div className="space-y-1.5">
+        {protocols.map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => onToggle(p.id)}
+            className={`w-full flex items-center justify-between rounded-xl border p-2.5 text-left transition ${
+              p.checked
+                ? 'border-[#41d69a]/40 bg-[#41d69a]/10 text-[#41d69a]'
+                : 'border-[#3e3e38] bg-[#2c2c2b] text-[#faf9f5] hover:border-[#52514a]'
+            }`}
+          >
+            <div className="flex items-center gap-2.5">
+              <span
+                className={`grid h-5 w-5 place-items-center rounded-lg border font-mono text-[11px] font-bold ${
+                  p.checked
+                    ? 'border-[#41d69a] bg-[#41d69a] text-[#1a1915]'
+                    : 'border-[#52514a] bg-[#1b1b19] text-[#77766e]'
+                }`}
+              >
+                {p.checked ? '✓' : ''}
+              </span>
+              <span className={`text-xs font-semibold ${p.checked ? 'line-through opacity-80' : ''}`}>
+                {p.label}
+              </span>
+            </div>
+            {p.required && (
+              <span className="rounded-md border border-[#fb7185]/40 bg-[#fb7185]/10 px-1.5 py-0.5 font-mono text-[9px] font-bold text-[#fb7185]">
+                MANDATORY
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
