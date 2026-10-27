@@ -14,10 +14,13 @@ const PORTALS: Array<{ role: Role; label: string; blurb: string; local: string; 
   { role: 'SYSTEM_ADMIN', label: 'Admin', local: 'admin', icon: Activity, blurb: 'Model metrics, safety rules, audit log' },
 ];
 const DOMAIN: string = import.meta.env.VITE_DEMO_DOMAIN ?? 'famegenix.org';
-const DEMO_PW: string = import.meta.env.VITE_DEMO_PASSWORD ?? '';
+const DEMO_PW: string = import.meta.env.VITE_DEMO_PASSWORD ?? 'FameGenix#2026';
 
 function AuthModal({ onDone, onClose, presetEmail }: { onDone: () => void; onClose: () => void; presetEmail?: string }) {
-  const [email, setEmail] = useState(presetEmail ?? ''); const [pw, setPw] = useState(''); const [err, setErr] = useState<string>(); const [busy, setBusy] = useState(false);
+  const [email, setEmail] = useState(presetEmail ?? `patient@${DOMAIN}`);
+  const [pw, setPw] = useState(DEMO_PW);
+  const [err, setErr] = useState<string>();
+  const [busy, setBusy] = useState(false);
   const submit = async (e: React.FormEvent) => {
     e.preventDefault(); setBusy(true); setErr(undefined);
     try { tokenStore.set((await api.login(email, pw)).access_token); onDone(); } catch (x) { setErr(errMsg(x)); } finally { setBusy(false); }
@@ -27,6 +30,7 @@ function AuthModal({ onDone, onClose, presetEmail }: { onDone: () => void; onClo
       <form onSubmit={(e) => void submit(e)} className="space-y-3">
         <input className={fieldCls} type="email" required aria-label="Email" placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
         <input className={fieldCls} type="password" required aria-label="Password" placeholder="Password" value={pw} onChange={(e) => setPw(e.target.value)} />
+        <p className="font-mono text-[11px] text-[#a9a99f]">Demo password prefilled: <span className="font-bold text-[#faf9f5]">FameGenix#2026</span></p>
         {err && <ErrorState message={err} />}
         <Btn type="submit" disabled={busy} className="w-full">{busy ? 'Signing in…' : 'Sign in'}</Btn>
       </form>
