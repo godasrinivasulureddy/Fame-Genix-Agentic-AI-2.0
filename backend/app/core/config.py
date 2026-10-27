@@ -18,7 +18,9 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = os.getenv("DATABASE_URL", f"sqlite:///{_DEFAULT_SQLITE_PATH}")
 
-    JWT_SECRET: str = os.getenv("JWT_SECRET", "")
+    # Development-only fallback so the zero-setup demo can mint tokens.
+    # The model_validator below rejects weak secrets in production/staging.
+    JWT_SECRET: str = os.getenv("JWT_SECRET", "dev-only-insecure-secret-change-me-0123456789abcdef")
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 1440  # 24 hours for development
     REFRESH_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
@@ -53,7 +55,7 @@ class Settings(BaseSettings):
         """Reject empty, placeholder, or weak JWT secrets in production-like environments."""
         env = self.ENVIRONMENT.lower()
         if env in ("production", "staging", "prod"):
-            if len(self.JWT_SECRET) < 32 or self.JWT_SECRET in {"change-me-in-production", "your_jwt_secret_here"}:
+            if len(self.JWT_SECRET) < 32 or "dev-only-insecure" in self.JWT_SECRET or self.JWT_SECRET in {"change-me-in-production", "your_jwt_secret_here"}:
                 raise ValueError(
                     f"JWT_SECRET must be a strong 32+ character value when ENVIRONMENT={env}."
                 )
