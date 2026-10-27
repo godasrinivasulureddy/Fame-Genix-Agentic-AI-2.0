@@ -270,7 +270,7 @@ def create_patient_emergency_case(
             active_case.longitude = lng
             active_case.location_accuracy = payload.get("accuracy")
             active_case.location_source = payload.get("location_source") or "BROWSER_DEVICE_GEOLOCATION"
-            active_case.location_consent = payload.get("location_consent") or True
+            active_case.location_consent = bool(payload.get("location_consent", False))
             db.commit()
             db.refresh(active_case)
         return ok(_serialize(active_case, db))
@@ -303,7 +303,7 @@ def create_patient_emergency_case(
         case.longitude = lng
         case.location_accuracy = payload.get("accuracy")
         case.location_source = payload.get("location_source") or "BROWSER_DEVICE_GEOLOCATION"
-        case.location_consent = payload.get("location_consent") or True
+        case.location_consent = bool(payload.get("location_consent", False))
     else:
         case.location_source = "UNAVAILABLE"
         case.location_consent = False

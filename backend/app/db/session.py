@@ -29,6 +29,13 @@ def init_db() -> None:
             ("weight_kg", "FLOAT"),
             ("profile_picture_url", "TEXT"),
             ("public_id", "TEXT"),
+            ("allergies", "TEXT"),
+            ("family_history", "TEXT"),
+            ("blood_group", "TEXT"),
+            ("emergency_contact_relationship", "TEXT"),
+            ("secondary_contact_name", "TEXT"),
+            ("secondary_contact_phone", "TEXT"),
+            ("secondary_contact_relationship", "TEXT"),
         ]:
             try:
                 conn.execute(text(f"ALTER TABLE patients ADD COLUMN {col_def[0]} {col_def[1]}"))

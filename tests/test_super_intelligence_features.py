@@ -11,7 +11,7 @@ import sys
 import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend")))
-from tests.conftest import auth_headers, register
+from tests.conftest import auth_headers, register, register_privileged
 from app.db.models import Role
 
 
@@ -44,7 +44,7 @@ def test_bluetooth_peripheral_scan_and_pairing(client):
 
 def test_ambient_cctv_fall_detection_ingestion(client):
     """Tests edge CCTV skeleton fall-alert ingestion."""
-    op_token = register(client, "cctv_op@test.com", "EMERGENCY_OPERATOR", full_name="Camera Chief")
+    op_token = register_privileged(client, "cctv_op@test.com", "EMERGENCY_OPERATOR", full_name="Camera Chief")
     headers = auth_headers(op_token)
 
     resp = client.post("/api/v1/devices/cctv/fall-alert?cctv_id=VISION-CCTV-ER-ROOM-1&patient_id=p-test-101&confidence=0.96", headers=headers)
@@ -57,7 +57,7 @@ def test_ambient_cctv_fall_detection_ingestion(client):
 
 def test_multi_agent_society_consensus(client):
     """Tests clinical deliberation across specialized agents and safety evaluator."""
-    doc_token = register(client, "ai_doctor@test.com", "DOCTOR", full_name="Dr. Skyline")
+    doc_token = register_privileged(client, "ai_doctor@test.com", "DOCTOR", full_name="Dr. Skyline")
     headers = auth_headers(doc_token)
 
     payload = {

@@ -1,4 +1,5 @@
 import os
+from pydantic import model_validator
 from pydantic_settings import BaseSettings
 
 # Anchor the default SQLite file to the backend/ directory (parent of app/),
@@ -46,6 +47,17 @@ class Settings(BaseSettings):
             os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "backend", ".env")
         )
         extra = "ignore"
+
+    @model_validator(mode="after")
+    def _validate_jwt_secret(self):
+        """Reject empty, placeholder, or weak JWT secrets in production-like environments."""
+        env = self.ENVIRONMENT.lower()
+        if env in ("production", "staging", "prod"):
+            if len(self.JWT_SECRET) < 32 or self.JWT_SECRET in {"change-me-in-production", "your_jwt_secret_here"}:
+                raise ValueError(
+                    f"JWT_SECRET must be a strong 32+ character value when ENVIRONMENT={env}."
+                )
+        return self
 
 
 settings = Settings()

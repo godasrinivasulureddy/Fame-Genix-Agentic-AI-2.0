@@ -12,7 +12,7 @@ import pytest
 from datetime import datetime, timedelta
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "backend")))
-from tests.conftest import auth_headers, register
+from tests.conftest import auth_headers, register, register_privileged
 from app.db.models import Patient, DeviceReading, RiskAssessment, DoctorConsultationRequest, Role
 
 
@@ -130,7 +130,7 @@ def test_multi_channel_notification_gateway(client):
 
 def test_hospital_resource_grid_and_handover_passport(client):
     """Verifies regional hospital bed telemetry and pre-hospital handover passport routing."""
-    op_token = register(client, "trauma_operator@test.com", "EMERGENCY_OPERATOR", full_name="Trauma Chief")
+    op_token = register_privileged(client, "trauma_operator@test.com", "EMERGENCY_OPERATOR", full_name="Trauma Chief")
     headers = auth_headers(op_token)
 
     # 1. Query real-time hospital resource grid

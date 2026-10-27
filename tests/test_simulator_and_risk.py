@@ -1,4 +1,4 @@
-from tests.conftest import auth_headers, register
+from tests.conftest import auth_headers, register, register_privileged
 
 
 def _setup_patient_with_device(client):
@@ -51,7 +51,7 @@ def test_assessment_returns_separate_risk_confidence_care_level(client):
 
 def test_worsening_patient_enters_doctor_queue(client):
     token, h, device_id = _setup_patient_with_device(client)
-    doctor_token = register(client, "docqueue@test.com", "DOCTOR", full_name="Dr Q")
+    doctor_token = register_privileged(client, "docqueue@test.com", "DOCTOR", full_name="Dr Q")
 
     client.post("/api/v1/simulator/start", json={"device_id": device_id, "scenario": "CRITICAL_RESPIRATORY"}, headers=h)
     for _ in range(7):

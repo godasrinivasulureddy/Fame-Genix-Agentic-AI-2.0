@@ -18,8 +18,11 @@ router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 @router.post("/register")
 def register(payload: RegisterRequest, db: Session = Depends(get_db)):
-    if payload.role not in Role.ALL:
-        raise app_error("VALIDATION_ERROR", f"role must be one of {Role.ALL}")
+    # Public self-service registration is restricted to PATIENT accounts.
+    # Privileged roles (DOCTOR, EMERGENCY_OPERATOR, AMBULANCE_TEAM,
+    # SYSTEM_ADMIN) are provisioned by the seed script / admin tooling only.
+    if payload.role != Role.PATIENT:
+        raise app_error("VALIDATION_ERROR", f"Self-registration is only allowed for {Role.PATIENT}; privileged roles must be provisioned by an administrator.")
     if db.query(User).filter(User.email == payload.email).first():
         raise app_error("ALREADY_EXISTS", "Email already registered.")
 
@@ -27,12 +30,9 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     db.add(user)
     db.flush()
 
-    if payload.role == Role.PATIENT:
-        count = db.query(Patient).count() + 1
-        pub_id = f"FG-P-{str(count).zfill(6)}"
-        db.add(Patient(user_id=user.id, full_name=payload.full_name, public_id=pub_id))
-    elif payload.role == Role.DOCTOR:
-        db.add(Doctor(user_id=user.id, full_name=payload.full_name))
+    count = db.query(Patient).count() + 1
+    pub_id = f"FG-P-{str(count).zfill(6)}"
+    db.add(Patient(user_id=user.id, full_name=payload.full_name, public_id=pub_id))
 
     db.commit()
     record_audit(db, user.id, user.role, "REGISTER", "user", user.id)

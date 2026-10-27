@@ -40,5 +40,33 @@ def register(client, email, role, full_name="Test User", password="Password123!"
     return resp.json()["data"]["access_token"]
 
 
+def register_privileged(client, email, role, full_name="Test User", password="Password123!"):
+    """Create a privileged test user directly in the DB.
+
+    The public registration endpoint only permits PATIENT self-registration.
+    """
+    from app.db.session import SessionLocal
+    from app.db.models import User, Patient, Doctor, Role as RoleEnum
+    from app.core.security import hash_password, create_access_token
+
+    db = SessionLocal()
+    try:
+        existing = db.query(User).filter(User.email == email).first()
+        if existing:
+            return create_access_token(existing.id, existing.role)
+        user = User(email=email, password_hash=hash_password(password), role=role)
+        db.add(user)
+        db.flush()
+        if role == RoleEnum.PATIENT:
+            count = db.query(Patient).count() + 1
+            db.add(Patient(user_id=user.id, full_name=full_name, public_id=f"FG-P-{str(count).zfill(6)}"))
+        elif role == RoleEnum.DOCTOR:
+            db.add(Doctor(user_id=user.id, full_name=full_name))
+        db.commit()
+        return create_access_token(user.id, user.role)
+    finally:
+        db.close()
+
+
 def auth_headers(token):
     return {"Authorization": f"Bearer {token}"}

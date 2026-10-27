@@ -479,34 +479,34 @@ function Landing({
           </div>
         </section>
 
-        {/* Clinical Validation & Governance Metrics Banner (from V1) */}
+        {/* Prototype scope banner: these are engineering controls, not clinical validation metrics. */}
         <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 rounded-3xl border border-[#3e3e38] bg-[#1b1b19] p-4 text-xs">
           <div className="flex items-center gap-3 p-2">
-            <span className="font-mono text-xl font-extrabold text-[#41d69a]">96.2%</span>
+            <span className="font-mono text-xl font-extrabold text-[#41d69a]">Rules</span>
             <div>
-              <p className="font-bold text-[#faf9f5]">Triage Concordance</p>
-              <p className="text-[10px] text-[#a9a99f]">Validated against MIMIC-IV benchmark</p>
+              <p className="font-bold text-[#faf9f5]">Deterministic safety layer</p>
+              <p className="text-[10px] text-[#a9a99f]">Rule thresholds take priority over model output</p>
             </div>
           </div>
           <div className="flex items-center gap-3 p-2">
-            <span className="font-mono text-xl font-extrabold text-[#d97757]">100%</span>
+            <span className="font-mono text-xl font-extrabold text-[#d97757]">AI</span>
             <div>
-              <p className="font-bold text-[#faf9f5]">Critical Safety Recall</p>
-              <p className="text-[10px] text-[#a9a99f]">Zero false-negatives on RF-001..RF-007</p>
+              <p className="font-bold text-[#faf9f5]">Grounded assistance</p>
+              <p className="text-[10px] text-[#a9a99f]">Nebius/NVIDIA path with deterministic fallback</p>
             </div>
           </div>
           <div className="flex items-center gap-3 p-2">
-            <span className="font-mono text-xl font-extrabold text-[#9c87f5]">CFM 2.314</span>
+            <span className="font-mono text-xl font-extrabold text-[#9c87f5]">RAG</span>
             <div>
-              <p className="font-bold text-[#faf9f5]">Clinical Governance</p>
-              <p className="text-[10px] text-[#a9a99f]">Telemedicine & AI compliance standard</p>
+              <p className="font-bold text-[#faf9f5]">Traceable evidence</p>
+              <p className="text-[10px] text-[#a9a99f]">Keyword retrieval over curated guideline chunks</p>
             </div>
           </div>
           <div className="flex items-center gap-3 p-2">
-            <span className="font-mono text-xl font-extrabold text-[#f2b955]">Immutable</span>
+            <span className="font-mono text-xl font-extrabold text-[#f2b955]">Demo</span>
             <div>
-              <p className="font-bold text-[#faf9f5]">SHA-256 Audit Trail</p>
-              <p className="text-[10px] text-[#a9a99f]">Every model inference strictly logged</p>
+              <p className="font-bold text-[#faf9f5]">Non-clinical prototype</p>
+              <p className="text-[10px] text-[#a9a99f]">Simulation workflows for software demonstration</p>
             </div>
           </div>
         </section>

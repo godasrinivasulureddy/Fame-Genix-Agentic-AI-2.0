@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.core.response import ok
 from app.db.session import get_db
 from app.core.dependencies import get_current_user
+from app.core.exceptions import app_error
 from app.db.models import User
 from app.audit.helper import record_audit
 from app.ai.service import ai_service
@@ -109,9 +110,14 @@ async def chat_with_ai(
 
 
 @router.get("/conversations")
-def get_conversations(db: Session = Depends(get_db)):
+def get_conversations(user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     from app.db.models import ChatConversation
-    convs = db.query(ChatConversation).order_by(ChatConversation.is_pinned.desc(), ChatConversation.updated_at.desc()).all()
+    convs = (
+        db.query(ChatConversation)
+        .filter(ChatConversation.user_id == user.id)
+        .order_by(ChatConversation.is_pinned.desc(), ChatConversation.updated_at.desc())
+        .all()
+    )
     res = [
         {
             "id": c.id,
@@ -127,10 +133,10 @@ def get_conversations(db: Session = Depends(get_db)):
 
 
 @router.post("/conversations")
-def create_conversation(payload: dict = None, db: Session = Depends(get_db)):
+def create_conversation(payload: dict = None, user: User = Depends(get_current_user), db: Session = Depends(get_db)):
     from app.db.models import ChatConversation
     title = (payload or {}).get("title", "New Conversation")
-    conv = ChatConversation(user_id="demo_user_1", title=title)
+    conv = ChatConversation(user_id=user.id, title=title)
     db.add(conv)
     db.commit()
     db.refresh(conv)
@@ -145,21 +151,34 @@ def create_conversation(payload: dict = None, db: Session = Depends(get_db)):
 
 
 @router.put("/conversations/{conv_id}")
-def update_conversation(conv_id: str, payload: dict, db: Session = Depends(get_db)):
+def update_conversation(
+    conv_id: str,
+    payload: dict,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     from app.db.models import ChatConversation
-    conv = db.query(ChatConversation).filter(ChatConversation.id == conv_id).first()
-    if conv:
-        if "title" in payload:
-            conv.title = payload["title"]
-        if "is_pinned" in payload:
-            conv.is_pinned = payload["is_pinned"]
-        db.commit()
+    conv = db.query(ChatConversation).filter(ChatConversation.id == conv_id, ChatConversation.user_id == user.id).first()
+    if not conv:
+        raise app_error("NOT_FOUND", "Conversation not found for current user.")
+    if "title" in payload:
+        conv.title = payload["title"]
+    if "is_pinned" in payload:
+        conv.is_pinned = payload["is_pinned"]
+    db.commit()
     return ok({"status": "updated"})
 
 
 @router.delete("/conversations/{conv_id}")
-def delete_conversation(conv_id: str, db: Session = Depends(get_db)):
+def delete_conversation(
+    conv_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+):
     from app.db.models import ChatConversation, ChatMessageModel
+    conv = db.query(ChatConversation).filter(ChatConversation.id == conv_id, ChatConversation.user_id == user.id).first()
+    if not conv:
+        raise app_error("NOT_FOUND", "Conversation not found for current user.")
     db.query(ChatMessageModel).filter(ChatMessageModel.conversation_id == conv_id).delete()
     db.query(ChatConversation).filter(ChatConversation.id == conv_id).delete()
     db.commit()
