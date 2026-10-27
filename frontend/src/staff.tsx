@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
+  Bot,
   Building2,
   Camera,
   CheckCircle2,
@@ -25,6 +26,7 @@ import type {
 } from './types';
 import {
   Btn,
+  ClinicalChatModal,
   ClinicalDossierModal,
   Empty,
   ErrorState,
@@ -78,6 +80,7 @@ export function DoctorView() {
   const [societyOpen, setSocietyOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [hospitalOpen, setHospitalOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const rawRows: Array<{ k: string; t?: TriageItem; c?: Consultation }> =
     tab === 'triage'
@@ -161,6 +164,10 @@ export function DoctorView() {
           <Btn tone="ghost" onClick={() => setSocietyOpen(true)} className="text-xs flex items-center gap-1.5">
             <Sparkles size={14} className="text-[#9c87f5]" />
             Multi-Agent Society
+          </Btn>
+          <Btn tone="ghost" onClick={() => setChatOpen(true)} className="text-xs flex items-center gap-1.5">
+            <Bot size={14} className="text-[#d97757]" />
+            AI Clinical Consult
           </Btn>
           <Btn tone="ghost" onClick={() => setHospitalOpen(true)} className="text-xs flex items-center gap-1.5">
             <Building2 size={14} className="text-[#41d69a]" />
@@ -516,6 +523,21 @@ export function DoctorView() {
       )}
       {hospitalOpen && <HospitalGridModal onClose={() => setHospitalOpen(false)} />}
       {settingsOpen && <PortalSettingsModal onClose={() => setSettingsOpen(false)} />}
+      {chatOpen && (
+        <ClinicalChatModal
+          onClose={() => setChatOpen(false)}
+          initialRole="DOCTOR"
+          patientContext={
+            patient
+              ? {
+                  name: patient.full_name,
+                  age: patient.age,
+                  conditions: patient.known_conditions,
+                }
+              : undefined
+          }
+        />
+      )}
     </div>
   );
 }

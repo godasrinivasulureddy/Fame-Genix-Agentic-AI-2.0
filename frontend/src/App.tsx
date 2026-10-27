@@ -274,6 +274,8 @@ function Landing({
   onExplore: (r: Role) => void;
   onSignIn: () => void;
 }) {
+  const [isEmergencyMode, setIsEmergencyMode] = useState(false);
+
   return (
     <div className="min-h-screen bg-[#262624] text-[#faf9f5]">
       {/* Top Navigation */}
@@ -288,7 +290,51 @@ function Landing({
               CLINICAL AI & EMS
             </span>
           </div>
+
+          {/* Interactive Simulation Toggle (from V1) */}
+          <button
+            onClick={() => setIsEmergencyMode(!isEmergencyMode)}
+            className={`hidden md:inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-mono font-semibold transition border ${
+              isEmergencyMode
+                ? 'bg-[#fb7185]/20 border-[#fb7185] text-[#fb7185] shadow-lg shadow-[#fb7185]/20'
+                : 'bg-[#41d69a]/10 border-[#41d69a]/40 text-[#41d69a] hover:border-[#41d69a]'
+            }`}
+          >
+            <span
+              className={`w-2 h-2 rounded-full ${
+                isEmergencyMode ? 'bg-[#fb7185] animate-ping' : 'bg-[#41d69a]'
+              }`}
+            />
+            <span>{isEmergencyMode ? 'CODE RED ACTIVE (Click for Stable)' : 'STABLE MODE (Click for Code Red)'}</span>
+          </button>
         </div>
+
+        {/* Quick Portal Switcher Pills */}
+        <nav className="hidden xl:flex items-center gap-1 rounded-xl bg-[#1b1b19] p-1 border border-[#3e3e38] font-mono text-xs">
+          {PORTALS.map((p) => (
+            <button
+              key={p.role}
+              onClick={() => onExplore(p.role)}
+              className="px-2.5 py-1 rounded-lg text-[#a9a99f] hover:text-[#faf9f5] hover:bg-[#2c2c2b] transition flex items-center gap-1.5"
+            >
+              <span
+                className={`w-1.5 h-1.5 rounded-full ${
+                  p.role === 'PATIENT'
+                    ? 'bg-[#41d69a]'
+                    : p.role === 'DOCTOR'
+                    ? 'bg-[#d97757]'
+                    : p.role === 'EMERGENCY_OPERATOR'
+                    ? 'bg-[#fb7185]'
+                    : p.role === 'AMBULANCE_TEAM'
+                    ? 'bg-[#f2b955]'
+                    : 'bg-[#9c87f5]'
+                }`}
+              />
+              <span>{p.label.split(' ')[0]}</span>
+            </button>
+          ))}
+        </nav>
+
         <div className="flex items-center gap-3">
           <Btn tone="ghost" onClick={onSignIn} className="text-xs">
             Sign In / SSO
@@ -301,12 +347,27 @@ function Landing({
 
       <main className="mx-auto max-w-7xl space-y-16 px-4 py-12 sm:px-8 sm:py-20">
         {/* Hero Section */}
-        <section className="grid gap-12 items-center lg:grid-cols-12">
+        <section className="relative grid gap-12 items-center lg:grid-cols-12">
+          {/* Ambient simulation backdrop glow */}
+          <div
+            className={`pointer-events-none absolute -top-24 right-1/4 h-96 w-96 rounded-full blur-[120px] transition-all duration-700 ${
+              isEmergencyMode ? 'bg-[#fb7185]/20' : 'bg-[#d97757]/15'
+            }`}
+          />
+
           <div className="lg:col-span-7 space-y-5">
-            <div className="inline-flex items-center gap-2 rounded-full border border-[#d97757]/30 bg-[#d97757]/10 px-3 py-1 font-mono text-xs font-semibold text-[#d97757]">
-              <span className="h-2 w-2 rounded-full bg-[#d97757] animate-ping" />
-              Continuous Telemetry · Deterministic Safety · Multi-Agent Society
-            </div>
+            {isEmergencyMode ? (
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#fb7185] bg-[#fb7185]/10 px-3.5 py-1 font-mono text-xs font-bold text-[#fb7185] shadow-lg shadow-[#fb7185]/20 animate-pulse">
+                <span className="h-2 w-2 rounded-full bg-[#fb7185]" />
+                ACTIVE CRITICAL OVERRIDE · CODE RED ENGAGED · PRIORITY 1 DISPATCH
+              </div>
+            ) : (
+              <div className="inline-flex items-center gap-2 rounded-full border border-[#d97757]/30 bg-[#d97757]/10 px-3.5 py-1 font-mono text-xs font-semibold text-[#d97757]">
+                <span className="h-2 w-2 rounded-full bg-[#d97757] animate-ping" />
+                Continuous Telemetry · Deterministic Safety · Multi-Agent Society
+              </div>
+            )}
+
             <h1 className="text-3xl font-extrabold tracking-tight text-[#faf9f5] sm:text-5xl lg:text-6xl leading-[1.1]">
               Algorithmic Triage, Vitals Drift Detection & Emergency Handover
             </h1>
@@ -333,40 +394,119 @@ function Landing({
           </div>
 
           <div className="lg:col-span-5">
-            <div className="relative rounded-3xl border border-[#3e3e38] bg-[#2c2c2b] p-6 shadow-2xl">
+            <div
+              className={`relative rounded-3xl border bg-[#2c2c2b] p-6 shadow-2xl transition-all duration-300 ${
+                isEmergencyMode
+                  ? 'border-[#fb7185] shadow-[#fb7185]/20 ring-1 ring-[#fb7185]'
+                  : 'border-[#3e3e38]'
+              }`}
+            >
               <div className="flex items-center justify-between border-b border-[#3e3e38] pb-3">
                 <span className="text-xs font-bold text-[#faf9f5] flex items-center gap-2">
-                  <Radio size={14} className="text-[#41d69a] animate-pulse" /> Live Telemetry Waveform Signature
+                  <Radio
+                    size={14}
+                    className={isEmergencyMode ? 'text-[#fb7185] animate-ping' : 'text-[#41d69a] animate-pulse'}
+                  />
+                  {isEmergencyMode ? 'ACTIVE CODE RED TELEMETRY' : 'Live Telemetry Waveform Signature'}
                 </span>
-                <span className="font-mono text-[10px] text-[#d97757]">99.4% UPTIME</span>
+                <span className={`font-mono text-[10px] font-bold ${isEmergencyMode ? 'text-[#fb7185]' : 'text-[#d97757]'}`}>
+                  {isEmergencyMode ? 'LATENCY 12ms · DISPATCH ACTIVE' : '99.4% UPTIME'}
+                </span>
               </div>
 
-              {/* Simulated ECG Waveform Graphic */}
+              {/* Dynamic ECG Waveform Graphic */}
               <div className="my-4 h-28 rounded-2xl bg-[#1b1b19] p-3 flex items-center justify-center border border-[#3e3e38] overflow-hidden">
-                <svg viewBox="0 0 400 60" className="w-full h-full text-[#d97757]">
-                  <path
-                    d="M 0 30 L 40 30 L 50 10 L 60 50 L 70 20 L 80 40 L 90 30 L 150 30 L 160 8 L 170 52 L 180 18 L 190 42 L 200 30 L 260 30 L 270 12 L 280 48 L 290 22 L 300 38 L 310 30 L 400 30"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
+                <svg
+                  viewBox="0 0 400 60"
+                  className={`w-full h-full transition-colors duration-500 ${
+                    isEmergencyMode ? 'text-[#fb7185]' : 'text-[#d97757]'
+                  }`}
+                >
+                  {isEmergencyMode ? (
+                    // Tachycardia ECG wave
+                    <path
+                      d="M 0 30 L 20 30 L 25 5 L 30 55 L 35 15 L 40 45 L 45 30 L 75 30 L 80 5 L 85 55 L 90 15 L 95 45 L 100 30 L 130 30 L 135 5 L 140 55 L 145 15 L 150 45 L 155 30 L 185 30 L 190 5 L 195 55 L 200 15 L 205 45 L 210 30 L 240 30 L 245 5 L 250 55 L 255 15 L 260 45 L 265 30 L 295 30 L 300 5 L 305 55 L 310 15 L 315 45 L 320 30 L 350 30 L 355 5 L 360 55 L 365 15 L 370 45 L 375 30 L 400 30"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  ) : (
+                    // Normal sinus rhythm wave
+                    <path
+                      d="M 0 30 L 40 30 L 50 10 L 60 50 L 70 20 L 80 40 L 90 30 L 150 30 L 160 8 L 170 52 L 180 18 L 190 42 L 200 30 L 260 30 L 270 12 L 280 48 L 290 22 L 300 38 L 310 30 L 400 30"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="2.5"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  )}
                 </svg>
               </div>
 
               <div className="grid grid-cols-2 gap-3 text-xs">
-                <div className="rounded-xl bg-[#1b1b19] p-3 border border-[#3e3e38]">
-                  <p className="text-[10px] text-[#a9a99f] uppercase font-bold">Safety Rule Guardrails</p>
-                  <p className="text-sm font-bold text-[#41d69a] mt-0.5">Authoritative Priority</p>
-                  <p className="text-[10px] text-[#a9a99f]">Deterministic override over LLMs</p>
-                </div>
-                <div className="rounded-xl bg-[#1b1b19] p-3 border border-[#3e3e38]">
-                  <p className="text-[10px] text-[#a9a99f] uppercase font-bold">Trauma Bed Broker</p>
-                  <p className="text-sm font-bold text-[#d97757] mt-0.5">Regional Grid</p>
-                  <p className="text-[10px] text-[#a9a99f]">Live ICU & Cath Lab routing</p>
-                </div>
+                {isEmergencyMode ? (
+                  <>
+                    <div className="rounded-xl bg-[#1b1b19] p-3 border border-[#fb7185]/50">
+                      <p className="text-[10px] text-[#fb7185] uppercase font-bold">Rule RF-002 Triggered</p>
+                      <p className="text-sm font-bold text-[#faf9f5] mt-0.5">MAP &lt; 65 mmHg</p>
+                      <p className="text-[10px] text-[#fb7185]">Immediate Code Red Dispatch</p>
+                    </div>
+                    <div className="rounded-xl bg-[#1b1b19] p-3 border border-[#fb7185]/50">
+                      <p className="text-[10px] text-[#fb7185] uppercase font-bold">Unit #04 En Route</p>
+                      <p className="text-sm font-bold text-[#faf9f5] mt-0.5">ETA: 4 Minutes</p>
+                      <p className="text-[10px] text-[#fb7185]">Cath Lab 01 Pre-Warmed</p>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="rounded-xl bg-[#1b1b19] p-3 border border-[#3e3e38]">
+                      <p className="text-[10px] text-[#a9a99f] uppercase font-bold">Safety Rule Guardrails</p>
+                      <p className="text-sm font-bold text-[#41d69a] mt-0.5">Authoritative Priority</p>
+                      <p className="text-[10px] text-[#a9a99f]">Deterministic override over LLMs</p>
+                    </div>
+                    <div className="rounded-xl bg-[#1b1b19] p-3 border border-[#3e3e38]">
+                      <p className="text-[10px] text-[#a9a99f] uppercase font-bold">Trauma Bed Broker</p>
+                      <p className="text-sm font-bold text-[#d97757] mt-0.5">Regional Grid</p>
+                      <p className="text-[10px] text-[#a9a99f]">Live ICU & Cath Lab routing</p>
+                    </div>
+                  </>
+                )}
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Clinical Validation & Governance Metrics Banner (from V1) */}
+        <section className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4 rounded-3xl border border-[#3e3e38] bg-[#1b1b19] p-4 text-xs">
+          <div className="flex items-center gap-3 p-2">
+            <span className="font-mono text-xl font-extrabold text-[#41d69a]">96.2%</span>
+            <div>
+              <p className="font-bold text-[#faf9f5]">Triage Concordance</p>
+              <p className="text-[10px] text-[#a9a99f]">Validated against MIMIC-IV benchmark</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 p-2">
+            <span className="font-mono text-xl font-extrabold text-[#d97757]">100%</span>
+            <div>
+              <p className="font-bold text-[#faf9f5]">Critical Safety Recall</p>
+              <p className="text-[10px] text-[#a9a99f]">Zero false-negatives on RF-001..RF-007</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 p-2">
+            <span className="font-mono text-xl font-extrabold text-[#9c87f5]">CFM 2.314</span>
+            <div>
+              <p className="font-bold text-[#faf9f5]">Clinical Governance</p>
+              <p className="text-[10px] text-[#a9a99f]">Telemedicine & AI compliance standard</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 p-2">
+            <span className="font-mono text-xl font-extrabold text-[#f2b955]">Immutable</span>
+            <div>
+              <p className="font-bold text-[#faf9f5]">SHA-256 Audit Trail</p>
+              <p className="text-[10px] text-[#a9a99f]">Every model inference strictly logged</p>
             </div>
           </div>
         </section>

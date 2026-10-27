@@ -3,14 +3,22 @@ import {
   AlertOctagon,
   Battery,
   Bluetooth,
+  Bot,
+  Calendar,
   CheckCircle2,
   Copy,
   Download,
   Lock,
   Phone,
+  Plus,
   Radio,
+  Save,
+  Send,
+  ShieldCheck,
   Sparkles,
   Stethoscope,
+  Trash2,
+  User,
   X,
 } from 'lucide-react';
 import { api, errMsg } from './api';
@@ -1209,3 +1217,505 @@ export function FieldProtocolChecklist({
     </div>
   );
 }
+
+/**
+ * Patient Health Profile & Clinical Notes Editor Modal
+ * Selectively migrated and redesigned from FAME-GENIX V1 with Amber theme aesthetics.
+ */
+export function PatientProfileModal({
+  patient,
+  onClose,
+  onProfileUpdated,
+}: {
+  patient: Patient | null;
+  onClose: () => void;
+  onProfileUpdated: (updated: Patient) => void;
+}) {
+  const [fullName, setFullName] = useState(patient?.full_name ?? '');
+  const [age, setAge] = useState<number | ''>(patient?.age ?? '');
+  const [sex, setSex] = useState(patient?.sex ?? '');
+  const [bloodGroup, setBloodGroup] = useState(patient?.blood_group ?? '');
+  const [heightCm, setHeightCm] = useState<number | ''>(patient?.height_cm ?? '');
+  const [weightKg, setWeightKg] = useState<number | ''>(patient?.weight_kg ?? '');
+  const [knownConditions, setKnownConditions] = useState(patient?.known_conditions ?? '');
+  const [allergies, setAllergies] = useState(patient?.allergies ?? '');
+  const [emergencyName, setEmergencyName] = useState(patient?.emergency_contact_name ?? '');
+  const [emergencyPhone, setEmergencyPhone] = useState(patient?.emergency_contact_phone ?? '');
+  const [secondaryName, setSecondaryName] = useState(patient?.secondary_contact_name ?? '');
+  const [secondaryPhone, setSecondaryPhone] = useState(patient?.secondary_contact_phone ?? '');
+
+  const [notes, setNotes] = useState<Array<{ id: string; note_text: string; created_at: string }>>([]);
+  const [newNote, setNewNote] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [savingNote, setSavingNote] = useState(false);
+  const [msg, setMsg] = useState<{ type: 'ok' | 'err'; text: string } | null>(null);
+
+  useEffect(() => {
+    api
+      .myNotes()
+      .then(setNotes)
+      .catch(() => {});
+  }, []);
+
+  const handleSave = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSaving(true);
+    setMsg(null);
+    try {
+      const updated = await api.updateMyProfile({
+        full_name: fullName,
+        age: age === '' ? undefined : Number(age),
+        sex: sex || undefined,
+        blood_group: bloodGroup || undefined,
+        height_cm: heightCm === '' ? undefined : Number(heightCm),
+        weight_kg: weightKg === '' ? undefined : Number(weightKg),
+        known_conditions: knownConditions || undefined,
+        allergies: allergies || undefined,
+        emergency_contact_name: emergencyName || undefined,
+        emergency_contact_phone: emergencyPhone || undefined,
+        secondary_contact_name: secondaryName || undefined,
+        secondary_contact_phone: secondaryPhone || undefined,
+      });
+      onProfileUpdated(updated);
+      setMsg({ type: 'ok', text: 'Personal health profile successfully updated and synchronized.' });
+    } catch (x) {
+      setMsg({ type: 'err', text: errMsg(x) });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleAddNote = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newNote.trim()) return;
+    setSavingNote(true);
+    try {
+      const created = await api.createNote(newNote.trim());
+      setNotes((prev) => [created, ...prev]);
+      setNewNote('');
+      setMsg({ type: 'ok', text: 'Clinical health note recorded.' });
+    } catch (x) {
+      setMsg({ type: 'err', text: errMsg(x) });
+    } finally {
+      setSavingNote(false);
+    }
+  };
+
+  const handleDeleteNote = async (id: string) => {
+    try {
+      await api.deleteNote(id);
+      setNotes((prev) => prev.filter((n) => n.id !== id));
+      setMsg({ type: 'ok', text: 'Health note removed.' });
+    } catch (x) {
+      setMsg({ type: 'err', text: errMsg(x) });
+    }
+  };
+
+  return (
+    <Modal title="Personal Health Profile & Longitudinal Journal" onClose={onClose} maxWidth="max-w-3xl">
+      <div className="space-y-6">
+        {msg && (
+          <div
+            className={`rounded-xl border p-3 text-xs font-semibold ${
+              msg.type === 'ok'
+                ? 'border-[#41d69a]/40 bg-[#41d69a]/10 text-[#41d69a]'
+                : 'border-[#fb7185]/40 bg-[#fb7185]/10 text-[#fb7185]'
+            }`}
+          >
+            {msg.text}
+          </div>
+        )}
+
+        <form onSubmit={handleSave} className="space-y-4">
+          <div className="flex items-center gap-2 border-b border-[#3e3e38] pb-2">
+            <User size={16} className="text-[#d97757]" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#faf9f5]">Core Demographic & Physical Vitals</h3>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="sm:col-span-2">
+              <label className="text-[11px] font-bold text-[#faf9f5]">Full Legal Name</label>
+              <input
+                className={fieldCls}
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                placeholder="Full name"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-[#faf9f5]">Age</label>
+              <input
+                type="number"
+                className={fieldCls}
+                value={age}
+                onChange={(e) => setAge(e.target.value === '' ? '' : Number(e.target.value))}
+                placeholder="Years"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-4">
+            <div>
+              <label className="text-[11px] font-bold text-[#faf9f5]">Biological Sex</label>
+              <select className={fieldCls} value={sex} onChange={(e) => setSex(e.target.value)}>
+                <option value="">Select</option>
+                <option value="MALE">Male</option>
+                <option value="FEMALE">Female</option>
+                <option value="OTHER">Other</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-[#faf9f5]">Blood Group</label>
+              <select className={fieldCls} value={bloodGroup} onChange={(e) => setBloodGroup(e.target.value)}>
+                <option value="">Select</option>
+                {['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'].map((bg) => (
+                  <option key={bg} value={bg}>
+                    {bg}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-[#faf9f5]">Height (cm)</label>
+              <input
+                type="number"
+                className={fieldCls}
+                value={heightCm}
+                onChange={(e) => setHeightCm(e.target.value === '' ? '' : Number(e.target.value))}
+                placeholder="e.g. 175"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-[#faf9f5]">Weight (kg)</label>
+              <input
+                type="number"
+                className={fieldCls}
+                value={weightKg}
+                onChange={(e) => setWeightKg(e.target.value === '' ? '' : Number(e.target.value))}
+                placeholder="e.g. 72"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="text-[11px] font-bold text-[#faf9f5]">Known Chronic Conditions</label>
+              <input
+                className={fieldCls}
+                value={knownConditions}
+                onChange={(e) => setKnownConditions(e.target.value)}
+                placeholder="e.g. Type 2 Diabetes, Hypertension, Asthma"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-[#faf9f5]">Known Allergies</label>
+              <input
+                className={fieldCls}
+                value={allergies}
+                onChange={(e) => setAllergies(e.target.value)}
+                placeholder="e.g. Penicillin, Peanuts, Sulfa Drugs"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 border-b border-[#3e3e38] pt-2 pb-2">
+            <Phone size={16} className="text-[#fb7185]" />
+            <h3 className="text-xs font-bold uppercase tracking-wider text-[#faf9f5]">Emergency Next-of-Kin Contacts</h3>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="text-[11px] font-bold text-[#faf9f5]">Primary Contact Name</label>
+              <input
+                className={fieldCls}
+                value={emergencyName}
+                onChange={(e) => setEmergencyName(e.target.value)}
+                placeholder="Next-of-kin name"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-[#faf9f5]">Primary Contact Phone</label>
+              <input
+                className={fieldCls}
+                value={emergencyPhone}
+                onChange={(e) => setEmergencyPhone(e.target.value)}
+                placeholder="+91 / +1 Contact number"
+              />
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div>
+              <label className="text-[11px] font-bold text-[#faf9f5]">Secondary Contact Name (Optional)</label>
+              <input
+                className={fieldCls}
+                value={secondaryName}
+                onChange={(e) => setSecondaryName(e.target.value)}
+                placeholder="Alternate contact name"
+              />
+            </div>
+            <div>
+              <label className="text-[11px] font-bold text-[#faf9f5]">Secondary Contact Phone</label>
+              <input
+                className={fieldCls}
+                value={secondaryPhone}
+                onChange={(e) => setSecondaryPhone(e.target.value)}
+                placeholder="Alternate phone number"
+              />
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <Btn type="submit" disabled={saving} className="flex items-center gap-2">
+              <Save size={14} />
+              {saving ? 'Synchronizing…' : 'Save Health Profile'}
+            </Btn>
+          </div>
+        </form>
+
+        {/* Longitudinal Clinical Health Notes */}
+        <div className="space-y-3 border-t border-[#3e3e38] pt-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Calendar size={16} className="text-[#9c87f5]" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-[#faf9f5]">
+                Longitudinal Health Notes & Diary
+              </h3>
+            </div>
+            <span className="font-mono text-[11px] text-[#a9a99f]">{notes.length} notes recorded</span>
+          </div>
+
+          <form onSubmit={handleAddNote} className="flex gap-2">
+            <input
+              className={fieldCls}
+              value={newNote}
+              onChange={(e) => setNewNote(e.target.value)}
+              placeholder="Record a timestamped clinical symptom observation, medication change, or query…"
+            />
+            <Btn type="submit" tone="ghost" disabled={savingNote || !newNote.trim()} className="flex items-center gap-1.5 text-xs">
+              <Plus size={14} />
+              {savingNote ? 'Adding…' : 'Add Note'}
+            </Btn>
+          </form>
+
+          <div className="max-h-52 space-y-2 overflow-y-auto pr-1">
+            {notes.length === 0 ? (
+              <p className="text-xs text-[#77766e] italic">No health notes recorded yet. Add your first clinical note above.</p>
+            ) : (
+              notes.map((n) => (
+                <div
+                  key={n.id}
+                  className="flex items-start justify-between gap-3 rounded-xl border border-[#3e3e38] bg-[#1b1b19] p-3 text-xs"
+                >
+                  <div className="space-y-1">
+                    <p className="text-[#faf9f5] leading-relaxed">{n.note_text}</p>
+                    <p className="font-mono text-[10px] text-[#77766e]">
+                      {new Date(n.created_at).toLocaleString()}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteNote(n.id)}
+                    className="text-[#77766e] hover:text-[#fb7185] transition"
+                    title="Delete Note"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </Modal>
+  );
+}
+
+/**
+ * Conversational Clinical AI Assistant Modal
+ * Selectively migrated from FAME-GENIX V1 with Amber theme aesthetics & clinical guardrails.
+ */
+export function ClinicalChatModal({
+  onClose,
+  initialRole = 'PATIENT',
+  patientContext,
+}: {
+  onClose: () => void;
+  initialRole?: 'PATIENT' | 'DOCTOR';
+  patientContext?: { name?: string; age?: number; conditions?: string };
+}) {
+  const [messages, setMessages] = useState<
+    Array<{
+      role: 'user' | 'assistant';
+      content: string;
+      specialty?: string;
+      safetyLevel?: string;
+      reviewRequired?: boolean;
+    }>
+  >([
+    {
+      role: 'assistant',
+      content: `Hello! I am **FAME Clinical AI Companion**.\n\nI can help evaluate symptoms, explain assessment risk scores, summarize vitals drift, or search clinical evidence guidelines.\n\n${
+        patientContext?.name ? `Patient active: **${patientContext.name}**` : ''
+      }`,
+      specialty: 'Clinical AI',
+      safetyLevel: 'NORMAL',
+    },
+  ]);
+  const [input, setInput] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string>();
+  const endRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages, busy]);
+
+  const send = async (textToSend?: string) => {
+    const prompt = (textToSend ?? input).trim();
+    if (!prompt || busy) return;
+    setInput('');
+    setErr(undefined);
+
+    const nextMessages = [...messages, { role: 'user' as const, content: prompt }];
+    setMessages(nextMessages);
+    setBusy(true);
+
+    try {
+      const history = nextMessages.slice(-6).map((m) => ({ role: m.role, content: m.content }));
+      const res = await api.chat({ message: prompt, history });
+      setMessages((prev) => [
+        ...prev,
+        {
+          role: 'assistant',
+          content: res.message,
+          specialty: res.suggested_specialty,
+          safetyLevel: res.safety_level,
+          reviewRequired: res.requires_professional_review,
+        },
+      ]);
+    } catch (x) {
+      setErr(errMsg(x));
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const quickPrompts =
+    initialRole === 'DOCTOR'
+      ? [
+          'Generate differential diagnosis for chest discomfort & diaphoresis',
+          'Review antiplatelet guidelines for suspected ACS',
+          'Summarize high-risk clinical findings on active patient',
+        ]
+      : [
+          'Explain what my current health risk level means',
+          'What foods or lifestyle habits help lower blood pressure?',
+          'When should I contact emergency services for shortness of breath?',
+        ];
+
+  return (
+    <Modal title="Clinical AI Health Assistant" onClose={onClose} maxWidth="max-w-2xl">
+      <div className="flex flex-col h-[65vh]">
+        {/* Chat Message Scrollport */}
+        <div className="flex-1 overflow-y-auto space-y-3 pr-2">
+          {messages.map((m, i) => (
+            <div
+              key={i}
+              className={`flex flex-col ${m.role === 'user' ? 'items-end' : 'items-start'}`}
+            >
+              <div
+                className={`max-w-[85%] rounded-2xl p-3.5 text-xs shadow-sm leading-relaxed ${
+                  m.role === 'user'
+                    ? 'bg-[#d97757] text-[#1a1915] font-medium'
+                    : 'bg-[#1b1b19] border border-[#3e3e38] text-[#faf9f5]'
+                }`}
+              >
+                {m.role === 'assistant' && (
+                  <div className="flex items-center gap-2 mb-2 pb-1.5 border-b border-[#3e3e38]">
+                    <Bot size={14} className="text-[#d97757]" />
+                    <span className="font-mono text-[10px] font-bold text-[#d97757]">
+                      FAME Clinical Intelligence
+                    </span>
+                    {m.specialty && (
+                      <span className="rounded-md border border-[#3e3e38] bg-[#2c2c2b] px-1.5 py-0.5 font-mono text-[9px] text-[#a9a99f]">
+                        {m.specialty}
+                      </span>
+                    )}
+                    {m.safetyLevel && (
+                      <span
+                        className={`rounded-md px-1.5 py-0.5 font-mono text-[9px] font-bold ${
+                          m.safetyLevel === 'CRITICAL'
+                            ? 'bg-[#fb7185]/20 text-[#fb7185]'
+                            : m.safetyLevel === 'MONITOR'
+                            ? 'bg-[#f2b955]/20 text-[#f2b955]'
+                            : 'bg-[#41d69a]/20 text-[#41d69a]'
+                        }`}
+                      >
+                        {m.safetyLevel}
+                      </span>
+                    )}
+                  </div>
+                )}
+                <div className="whitespace-pre-line">{m.content}</div>
+                {m.reviewRequired && (
+                  <div className="mt-2 flex items-center gap-1.5 text-[10px] font-semibold text-[#f2b955]">
+                    <ShieldCheck size={12} />
+                    <span>Clinical Physician Review Recommended</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {busy && (
+            <div className="flex items-center gap-2 text-xs text-[#d97757] p-2">
+              <Bot size={14} className="animate-pulse" />
+              <span>Consulting clinical evidence model…</span>
+            </div>
+          )}
+
+          {err && <ErrorState message={err} />}
+          <div ref={endRef} />
+        </div>
+
+        {/* Quick prompt chips */}
+        <div className="py-2 flex flex-wrap gap-1.5 border-t border-[#3e3e38] mt-2">
+          {quickPrompts.map((p, idx) => (
+            <button
+              key={idx}
+              onClick={() => send(p)}
+              disabled={busy}
+              className="rounded-lg border border-[#3e3e38] bg-[#1b1b19] px-2.5 py-1 text-[11px] text-[#a9a99f] hover:border-[#d97757] hover:text-[#faf9f5] transition"
+            >
+              {p}
+            </button>
+          ))}
+        </div>
+
+        {/* Composer Form */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            send();
+          }}
+          className="flex gap-2 pt-2 border-t border-[#3e3e38]"
+        >
+          <input
+            className={fieldCls}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Type your medical query, symptoms, or medication question…"
+            disabled={busy}
+          />
+          <Btn type="submit" disabled={busy || !input.trim()} className="flex items-center gap-1.5 px-4">
+            <Send size={14} />
+            <span>Send</span>
+          </Btn>
+        </form>
+      </div>
+    </Modal>
+  );
+}
+

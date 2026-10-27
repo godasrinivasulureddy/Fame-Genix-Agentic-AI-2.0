@@ -4,10 +4,12 @@ import {
   Bluetooth,
   FileText,
   Heart,
+  MessageSquare,
   Mic,
   Settings,
   ShieldAlert,
   Sparkles,
+  UserCheck,
   Users,
   Volume2,
 } from 'lucide-react';
@@ -17,6 +19,7 @@ import {
   BluetoothPairModal,
   Btn,
   Card,
+  ClinicalChatModal,
   ClinicalDossierModal,
   ErrorState,
   EvidenceChainNode,
@@ -25,6 +28,7 @@ import {
   Loading,
   MultiAgentConsensusModal,
   Overline,
+  PatientProfileModal,
   PortalSettingsModal,
   RiskBadge,
   RiskDonut,
@@ -301,6 +305,8 @@ export default function PatientView() {
   const [btOpen, setBtOpen] = useState(false);
   const [societyOpen, setSocietyOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+  const [chatOpen, setChatOpen] = useState(false);
 
   // SOS state
   const [sosBusy, setSosBusy] = useState(false);
@@ -427,6 +433,14 @@ export default function PatientView() {
 
         {/* Action Toolbar */}
         <div className="flex flex-wrap items-center gap-2">
+          <Btn tone="ghost" onClick={() => setProfileOpen(true)} className="text-xs flex items-center gap-1.5">
+            <UserCheck size={14} className="text-[#d97757]" />
+            Profile &amp; Notes
+          </Btn>
+          <Btn tone="ghost" onClick={() => setChatOpen(true)} className="text-xs flex items-center gap-1.5">
+            <MessageSquare size={14} className="text-[#9c87f5]" />
+            AI Health Chat
+          </Btn>
           <Btn tone="ghost" onClick={() => setBtOpen(true)} className="text-xs flex items-center gap-1.5">
             <Bluetooth size={14} className="text-[#41d69a]" />
             BLE Hardware
@@ -813,6 +827,26 @@ export default function PatientView() {
       {btOpen && <BluetoothPairModal onClose={() => setBtOpen(false)} />}
       {societyOpen && <MultiAgentConsensusModal onClose={() => setSocietyOpen(false)} />}
       {settingsOpen && <PortalSettingsModal onClose={() => setSettingsOpen(false)} />}
+      {profileOpen && (
+        <PatientProfileModal
+          patient={p ?? null}
+          onClose={() => setProfileOpen(false)}
+          onProfileUpdated={() => {
+            me.reload();
+          }}
+        />
+      )}
+      {chatOpen && (
+        <ClinicalChatModal
+          onClose={() => setChatOpen(false)}
+          initialRole="PATIENT"
+          patientContext={{
+            name: p?.full_name,
+            age: p?.age,
+            conditions: p?.known_conditions,
+          }}
+        />
+      )}
     </div>
   );
 }

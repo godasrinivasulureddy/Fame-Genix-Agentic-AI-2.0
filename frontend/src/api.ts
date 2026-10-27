@@ -142,6 +142,14 @@ export const api = {
     }
     return req<unknown>(`/${kind}/analyze`, { form });
   },
+  chat: (payload: { message: string; conversation_id?: string; history?: Array<{ role: string; content: string }> }) =>
+    post<{
+      message: string;
+      language: string;
+      suggested_specialty?: string;
+      safety_level: string;
+      requires_professional_review: boolean;
+    }>('/ai/chat', payload),
 
   // Multi-Agent Medical Society Consensus
   multiAgentConsensus: (payload: {
