@@ -20,6 +20,7 @@ from app.images.router import router as images_router
 from app.reports.router import router as reports_router
 from app.core.sse_router import router as sse_router
 from app.rag.router import router as rag_router
+from app.core.settings_router import router as settings_router
 
 app = FastAPI(title=settings.APP_NAME, version="0.1.0")
 
@@ -49,6 +50,7 @@ app.include_router(images_router)
 app.include_router(reports_router)
 app.include_router(sse_router)
 app.include_router(rag_router)
+app.include_router(settings_router)
 
 
 @app.on_event("startup")
@@ -66,3 +68,5 @@ def on_startup() -> None:
 @app.get("/health")
 def health():
     return {"status": "ok", "app": settings.APP_NAME, "demo_mode": settings.DEMO_MODE}
+
+

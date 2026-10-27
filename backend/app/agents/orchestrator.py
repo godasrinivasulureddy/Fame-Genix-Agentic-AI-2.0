@@ -1,4 +1,4 @@
-"""
+﻿"""
 Controlled Agent Orchestrator with Typed Tool Schemas & Safety Authorization.
 Tasks: T3.10 & T3.11
 """
@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 from app.core.exceptions import app_error
 from app.rag.knowledge_base import knowledge_engine
 from app.rag.tavily_search import tavily_client
+from app.agents.specialized_society import multi_agent_society
 
 logger = logging.getLogger(__name__)
 
@@ -134,3 +135,4 @@ class AgentOrchestrator:
 
 
 agent_orchestrator = AgentOrchestrator()
+
