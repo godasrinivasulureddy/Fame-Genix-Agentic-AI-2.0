@@ -13,8 +13,13 @@ class PatientUpdate(BaseModel):
     profile_picture_url: str | None = None
     known_conditions: str | None = None
     family_history: str | None = None
+    allergies: str | None = None
     emergency_contact_name: str | None = None
     emergency_contact_phone: str | None = None
+    secondary_contact_name: str | None = None
+    secondary_contact_phone: str | None = None
+    emergency_contact_relationship: str | None = None
+    secondary_contact_relationship: str | None = None
     blood_group: str | None = None
 
 
@@ -30,8 +35,13 @@ class PatientOut(BaseModel):
     profile_picture_url: str | None = None
     known_conditions: str | None = None
     family_history: str | None = None
+    allergies: str | None = None
     emergency_contact_name: str | None = None
     emergency_contact_phone: str | None = None
+    secondary_contact_name: str | None = None
+    secondary_contact_phone: str | None = None
+    emergency_contact_relationship: str | None = None
+    secondary_contact_relationship: str | None = None
     blood_group: str | None = None
 
     class Config:

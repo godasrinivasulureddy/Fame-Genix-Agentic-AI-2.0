@@ -1,9 +1,13 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from datetime import datetime
 from sqlalchemy.orm import Session
 
 from app.core.dependencies import get_current_user, require_role
 from app.core.response import ok
-from app.db.models import HealthScore, PatientHealthNote, Role, User
+from app.db.models import (
+    HealthScore, PatientHealthNote, Role, User, DeviceReading,
+    RiskAssessment, DoctorReview, DoctorConsultationRequest, EmergencyCase
+)
 from app.db.session import get_db
 from app.patients.schemas import (
     HealthNoteCreate,
@@ -16,6 +20,8 @@ from app.patients.schemas import (
 )
 from app.patients.service import (assert_can_view_patient, build_timeline,
                                    get_patient_by_user, get_patient_or_404)
+from app.reports.pdf_generator import generate_patient_clinical_pdf
+from app.notifications.gateway import notification_gateway
 
 router = APIRouter(prefix="/api/v1/patients", tags=["patients"])
 
@@ -445,5 +451,181 @@ def create_direct_assessment(
     serialized["triggered_safety_rules"] = triggered_rules
 
     return ok(serialized)
+
+
+@router.get("/{patient_id}/clinical-dossier")
+def get_patient_clinical_dossier(
+    patient_id: str,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Returns an off-canvas, rich clinical dossier for doctors, emergency ops,
+    and patients. Includes demographics, Primary/Secondary SOS contacts,
+    chronic history, allergies, baseline vitals, and longitudinal case records.
+    """
+    patient = get_patient_or_404(db, patient_id)
+    assert_can_view_patient(user, patient)
+
+    # Fetch longitudinal clinical events
+    assessments = (
+        db.query(RiskAssessment)
+        .filter(RiskAssessment.patient_id == patient_id)
+        .order_by(RiskAssessment.created_at.desc())
+        .limit(10)
+        .all()
+    )
+    consultations = (
+        db.query(DoctorConsultationRequest)
+        .filter(DoctorConsultationRequest.patient_id == patient_id)
+        .order_by(DoctorConsultationRequest.requested_at.desc())
+        .limit(10)
+        .all()
+    )
+    emergency_cases = (
+        db.query(EmergencyCase)
+        .filter(EmergencyCase.patient_id == patient_id)
+        .order_by(EmergencyCase.created_at.desc())
+        .limit(5)
+        .all()
+    )
+    recent_readings = (
+        db.query(DeviceReading)
+        .filter(DeviceReading.patient_id == patient_id)
+        .order_by(DeviceReading.recorded_at.desc())
+        .limit(20)
+        .all()
+    )
+
+    dossier = {
+        "patient_id": patient.id,
+        "public_uhid": patient.public_id or f"UHID-{patient.id[:8].upper()}",
+        "full_name": patient.full_name,
+        "age": patient.age,
+        "sex": patient.sex,
+        "blood_group": patient.blood_group or "Not Documented",
+        "registered_at": patient.created_at,
+        "contacts": {
+            "primary_sos": {
+                "name": patient.emergency_contact_name,
+                "phone": patient.emergency_contact_phone,
+                "relationship": patient.emergency_contact_relationship or "Primary Guardian"
+            },
+            "secondary_sos": {
+                "name": patient.secondary_contact_name,
+                "phone": patient.secondary_contact_phone,
+                "relationship": patient.secondary_contact_relationship or "Secondary Contact"
+            }
+        },
+        "medical_background": {
+            "known_conditions": [c.strip() for c in (patient.known_conditions or "").split(",") if c.strip()],
+            "allergies": [a.strip() for a in (patient.allergies or "").split(",") if a.strip()],
+            "family_history": patient.family_history
+        },
+        "latest_vitals_snapshot": [
+            {
+                "metric": r.metric,
+                "value": r.value,
+                "unit": r.unit,
+                "quality": r.quality,
+                "recorded_at": r.recorded_at
+            }
+            for r in recent_readings[:5]
+        ],
+        "case_history": {
+            "total_assessments": len(assessments),
+            "total_consultations": len(consultations),
+            "emergency_incidents": len(emergency_cases),
+            "recent_consultations": [
+                {
+                    "token_number": c.token_number,
+                    "specialty": c.specialty,
+                    "status": c.status,
+                    "risk_score": c.risk_score,
+                    "care_level": c.care_level,
+                    "requested_at": c.requested_at
+                }
+                for c in consultations
+            ],
+            "recent_emergencies": [
+                {
+                    "case_id": e.id,
+                    "status": e.status,
+                    "trigger_type": e.trigger_type,
+                    "created_at": e.created_at,
+                    "resolved_at": e.completed_at
+                }
+                for e in emergency_cases
+            ]
+        }
+    }
+    return ok(dossier)
+
+
+@router.get("/{patient_id}/report/pdf")
+def download_patient_health_pdf(
+    patient_id: str,
+    start_date: str | None = Query(None, description="ISO Start date e.g. 2026-01-01"),
+    end_date: str | None = Query(None, description="ISO End date e.g. 2026-12-31"),
+    sections: str | None = Query(None, description="Comma-separated: vitals,assessments,consultations"),
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Synthesizes and downloads a publication-grade, patient-friendly and clinician-ready
+    PDF health summary report with date filtering and customizable sections.
+    """
+    patient = get_patient_or_404(db, patient_id)
+    assert_can_view_patient(user, patient)
+
+    start_dt = None
+    end_dt = None
+    if start_date:
+        try:
+            start_dt = datetime.fromisoformat(start_date)
+        except Exception:
+            pass
+    if end_date:
+        try:
+            end_dt = datetime.fromisoformat(end_date)
+        except Exception:
+            pass
+
+    section_list = [s.strip() for s in sections.split(",")] if sections else None
+
+    # Query filtered data
+    r_query = db.query(DeviceReading).filter(DeviceReading.patient_id == patient_id)
+    a_query = db.query(RiskAssessment).filter(RiskAssessment.patient_id == patient_id)
+    c_query = db.query(DoctorConsultationRequest).filter(DoctorConsultationRequest.patient_id == patient_id)
+
+    if start_dt:
+        r_query = r_query.filter(DeviceReading.recorded_at >= start_dt)
+        a_query = a_query.filter(RiskAssessment.created_at >= start_dt)
+        c_query = c_query.filter(DoctorConsultationRequest.requested_at >= start_dt)
+    if end_dt:
+        r_query = r_query.filter(DeviceReading.recorded_at <= end_dt)
+        a_query = a_query.filter(RiskAssessment.created_at <= end_dt)
+        c_query = c_query.filter(DoctorConsultationRequest.requested_at <= end_dt)
+
+    readings = r_query.order_by(DeviceReading.recorded_at.desc()).limit(50).all()
+    assessments = a_query.order_by(RiskAssessment.created_at.desc()).limit(10).all()
+    consultations = c_query.order_by(DoctorConsultationRequest.requested_at.desc()).limit(10).all()
+
+    pdf_bytes = generate_patient_clinical_pdf(
+        patient=patient,
+        start_date=start_dt,
+        end_date=end_dt,
+        readings=readings,
+        assessments=assessments,
+        consultations=consultations,
+        include_sections=section_list
+    )
+
+    filename = f"FAME_GENIX_Health_Report_{patient.public_id or patient.id[:8]}.pdf"
+    return Response(
+        content=pdf_bytes,
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 
