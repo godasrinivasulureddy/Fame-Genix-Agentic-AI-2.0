@@ -1,9 +1,64 @@
 @import "tailwindcss";
+
 @theme {
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-mono: "JetBrains Mono", "SF Mono", Consolas, Menlo, monospace;
+  --color-amber-bg: #262624;
+  --color-amber-card: #2c2c2b;
+  --color-amber-popover: #30302e;
+  --color-amber-primary: #d97757;
+  --color-amber-secondary: #faf9f5;
+  --color-amber-accent: #1a1915;
+  --color-amber-muted: #1b1b19;
+  --color-amber-border: #3e3e38;
+  --color-amber-input: #52514a;
+  --color-amber-ring: #d97757;
+  --color-amber-sidebar: #1f1e1d;
+  --color-amber-sidebar-primary: #343434;
+  --color-amber-sidebar-accent: #0f0f0e;
+  --color-amber-chart-1: #b05730;
+  --color-amber-chart-2: #9c87f5;
+  --color-amber-chart-3: #1a1915;
+  --color-amber-chart-4: #2f2b48;
+  --color-amber-chart-5: #b4552d;
+
+  --font-sans: "Outfit", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Consolas, Menlo, monospace;
 }
+
 html, body, #root { min-height: 100%; }
-body { @apply bg-slate-950 text-slate-100 font-sans antialiased; }
-button, input, select, textarea, a { @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/40; }
+body { @apply bg-[#262624] text-[#faf9f5] font-sans antialiased; }
+button, input, select, textarea, a { @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#d97757]/60; }
 button, select, input { min-height: 44px; }
+
+.section-pad { @apply px-4 py-12 sm:px-8 sm:py-16; }
+.section-title { @apply mb-1 text-[10px] font-semibold uppercase tracking-[0.16em] text-[#d97757] sm:text-[11px]; }
+.section-heading { @apply mb-4 mt-0 text-3xl font-semibold tracking-tight text-[#faf9f5] sm:text-5xl md:text-6xl; }
+.section-copy { @apply mt-0 max-w-2xl text-sm leading-relaxed text-[#a9a99f] sm:text-base; }
+
+.clinic-card { @apply rounded-2xl border border-[#3e3e38] bg-[#2c2c2b] p-5 shadow-sm shadow-black/20 sm:p-6; }
+.clinic-btn-primary { @apply rounded-xl bg-[#d97757] px-5 py-2.5 text-sm font-semibold text-[#1a1915] hover:bg-[#e58a6e] transition; }
+.clinic-btn-ghost { @apply rounded-xl border border-[#3e3e38] bg-[#2c2c2b] px-5 py-2.5 text-sm font-semibold text-[#faf9f5] hover:bg-[#30302e] transition; }
+.clinic-input { @apply w-full rounded-xl border border-[#52514a] bg-[#1b1b19] px-3 text-sm text-[#faf9f5] placeholder:text-[#77766e] shadow-inner transition; }
+
+/* Existing utility class compatibility, remapped to Claude Amber tokens. */
+.bg-slate-950, .bg-slate-950\/80, .bg-slate-950\/95 { background-color: #1b1b19 !important; }
+.bg-slate-900, .bg-slate-900\/80 { background-color: #2c2c2b !important; }
+.bg-slate-800 { background-color: #343434 !important; }
+.border-slate-800, .border-slate-700 { border-color: #3e3e38 !important; }
+.text-white { color: #faf9f5 !important; }
+.text-slate-100, .text-slate-200, .text-slate-300 { color: #d9d8d0 !important; }
+.text-slate-400, .text-slate-500 { color: #a9a99f !important; }
+.text-cyan-400, .text-cyan-300 { color: #d97757 !important; }
+.bg-cyan-600 { background-color: #d97757 !important; }
+.bg-cyan-950\/20, .bg-cyan-950\/40 { background-color: rgba(217, 119, 87, 0.12) !important; }
+.border-cyan-500\/30, .border-cyan-500\/50 { border-color: rgba(217, 119, 87, 0.45) !important; }
+.text-indigo-300 { color: #9c87f5 !important; }
+.bg-indigo-950\/40 { background-color: rgba(156, 135, 245, 0.12) !important; }
+.border-indigo-300\/20 { border-color: rgba(156, 135, 245, 0.35) !important; }
+.bg-rose-950\/30, .bg-rose-950\/40 { background-color: rgba(239, 68, 68, 0.12) !important; }
+.bg-amber-950\/20, .bg-amber-950\/40 { background-color: rgba(242, 185, 85, 0.12) !important; }
+.text-emerald-400 { color: #41d69a !important; }
+.bg-emerald-950\/40 { background-color: rgba(65, 214, 154, 0.12) !important; }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
+}
