@@ -393,3 +393,61 @@ def get_emergency_handover_passport(
     }
     return ok(passport)
 
+
+
+@router.post("/green-corridor")
+def request_green_corridor_preemption(
+    payload: dict,
+    user=Depends(require_role(Role.EMERGENCY_OPERATOR, Role.AMBULANCE_TEAM))
+):
+    """Smart city municipal traffic light preemption for critical ambulance transit."""
+    from app.risk.diagnostic_hub import diagnostic_hub
+    amb_id = payload.get("ambulance_id", "AMB-01")
+    hosp_id = payload.get("hospital_id", "HOSP-APOLLO-MAIN")
+    lat = payload.get("latitude", 16.3067)
+    lng = payload.get("longitude", 80.4365)
+    res = diagnostic_hub.trigger_green_corridor_preemption(amb_id, hosp_id, lat, lng)
+    return ok(res)
+
+
+@router.post("/insurance/abdm-preauth")
+def request_insurance_preauth(
+    payload: dict,
+    user=Depends(require_role(Role.EMERGENCY_OPERATOR, Role.DOCTOR))
+):
+    """Ayushman Bharat / PMJAY & Private TPA instant cashless pre-authorization bundle."""
+    from app.risk.diagnostic_hub import diagnostic_hub
+    p_id = payload.get("patient_id", "PAT-101")
+    diag = payload.get("diagnosis_code", "I21.0")
+    proc = payload.get("procedure_code", "CATH-01")
+    cost = payload.get("cost_inr", 125000.0)
+    res = diagnostic_hub.generate_ayushman_bharat_preauth_bundle(p_id, diag, proc, cost)
+    return ok(res)
+
+
+@router.get("/diagnostics/helmet-heat-strain")
+def check_helmet_heat_strain(
+    patient_id: str,
+    sodium: float = 48.0,
+    potassium: float = 6.2,
+    skin_temp: float = 38.0,
+    user=Depends(require_role(Role.PATIENT, Role.DOCTOR, Role.EMERGENCY_OPERATOR))
+):
+    """Smart Helmet hydration & electrolyte heat-strain evaluation."""
+    from app.risk.diagnostic_hub import diagnostic_hub
+    res = diagnostic_hub.evaluate_heat_strain(patient_id, sodium, potassium, skin_temp)
+    return ok(res.model_dump())
+
+
+@router.get("/diagnostics/mask-breath-vocs")
+def check_mask_breath_vocs(
+    patient_id: str,
+    acetone: float = 0.8,
+    ammonia: float = 0.5,
+    no_ppb: float = 18.0,
+    user=Depends(require_role(Role.PATIENT, Role.DOCTOR, Role.EMERGENCY_OPERATOR))
+):
+    """Smart Mask exhaled breathomics (Acetone/DKA, Ammonia/Renal, eNO/Asthma)."""
+    from app.risk.diagnostic_hub import diagnostic_hub
+    res = diagnostic_hub.evaluate_breath_vocs(patient_id, acetone, ammonia, no_ppb)
+    return ok(res.model_dump())

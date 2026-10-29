@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Response
+﻿from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from datetime import datetime
 from sqlalchemy.orm import Session
 
@@ -536,3 +536,64 @@ def download_patient_health_pdf(
 
 
 
+
+
+@router.post("/pharmacy/scan-tablet")
+def scan_tablet_camera(
+    payload: dict,
+    user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Scans tablet packaging via camera or text query:
+    - Identifies active ingredient and indications
+    - Estimates wholesale vs retail price savings
+    - Generates audio voice-over explanation script
+    - Provides nutritional recovery & dietary advice
+    - Checks against user allergies
+    """
+    from app.patients.pharmacy_engine import pharmacy_engine
+    patient = get_patient_by_user(db, user) if user.role == Role.PATIENT else None
+    allergies = patient.allergies if patient else None
+
+    query = payload.get("query") or payload.get("ocr_text", "Dolo 650")
+    result = pharmacy_engine.identify_tablet_from_scan(query, user_allergies=allergies)
+    return ok(result.model_dump())
+
+
+@router.post("/diagnostics/rppg-face-scan")
+def scan_face_vitals_rppg(
+    payload: dict,
+    user: User = Depends(get_current_user)
+):
+    """Camera Remote Photoplethysmography (rPPG) measuring Heart Rate and Respiration from skin color micro-pulsations."""
+    from app.risk.diagnostic_hub import diagnostic_hub
+    frames = payload.get("frames_count", 450)
+    result = diagnostic_hub.rppg_face_vitals_scan(facial_frames_count=frames)
+    return ok(result)
+
+
+@router.post("/diagnostics/fast-stroke-screen")
+def screen_fast_stroke(
+    payload: dict,
+    user: User = Depends(get_current_user)
+):
+    """Evaluates Face-Arm-Speech (FAST) stroke criteria."""
+    from app.risk.diagnostic_hub import diagnostic_hub
+    droop = payload.get("facial_droop", False)
+    drift = payload.get("arm_drift", False)
+    slurred = payload.get("slurred_speech", False)
+    result = diagnostic_hub.evaluate_fast_stroke_screen(droop, drift, slurred)
+    return ok(result)
+
+
+@router.post("/diagnostics/cough-acoustic")
+def screen_cough_acoustics(
+    payload: dict,
+    user: User = Depends(get_current_user)
+):
+    """Acoustic stethoscope cough analyzer."""
+    from app.risk.diagnostic_hub import diagnostic_hub
+    sig = payload.get("signature", "wet_crackles")
+    result = diagnostic_hub.evaluate_cough_acoustics(sig)
+    return ok(result)

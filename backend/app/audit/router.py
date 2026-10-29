@@ -1,4 +1,4 @@
-import json
+﻿import json
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -19,3 +19,13 @@ def list_logs(limit: int = 100, user=Depends(require_role(Role.SYSTEM_ADMIN)), d
         "target_type": r.target_type, "target_id": r.target_id, "result": r.result,
         "metadata": json.loads(r.metadata_json or "{}"), "created_at": r.created_at,
     } for r in rows])
+
+
+@router.get("/black-box/verify")
+def verify_cryptographic_black_box(
+    user=Depends(require_role(Role.SYSTEM_ADMIN))
+):
+    """Verifies cryptographic chain of custody & returns latest root hash."""
+    from app.audit.black_box import clinical_black_box
+    res = clinical_black_box.verify_chain_integrity()
+    return ok(res)

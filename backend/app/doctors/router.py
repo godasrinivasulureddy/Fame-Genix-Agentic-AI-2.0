@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+﻿from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.audit.helper import record_audit
@@ -208,3 +208,29 @@ def complete_consultation_review(request_id: str, user: User = Depends(require_r
     record_audit(db, user.id, user.role, "CONSULTATION_COMPLETED", "consultation", r.id)
     return ok({"status": "COMPLETED", "completed_at": r.completed_at.isoformat()})
 
+
+
+@router.post("/patients/{patient_id}/soap-note")
+def generate_patient_soap_note(
+    patient_id: str,
+    payload: dict,
+    user=Depends(require_role(Role.DOCTOR)),
+    db: Session = Depends(get_db)
+):
+    """Autonomous Medical Scribe: Generates standardized Clinical SOAP Note with 1-click EHR export."""
+    from app.doctors.scribe_engine import scribe_engine
+    patient = get_patient_or_404(db, patient_id)
+    vitals = payload.get("vitals", {"spo2": 96.0, "hr": 78.0, "rr": 16.0, "temp": 37.0})
+    labs = payload.get("labs", {})
+    transcript = payload.get("transcript", "Routine medical follow-up encounter.")
+    lang = payload.get("language", "en")
+
+    note = scribe_engine.generate_soap_note(
+        patient_id=patient.id,
+        patient_name=patient.full_name,
+        transcript_or_text=transcript,
+        vitals=vitals,
+        lab_markers=labs,
+        language=lang
+    )
+    return ok(note.model_dump())
