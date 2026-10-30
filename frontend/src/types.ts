@@ -253,3 +253,127 @@ export interface CCTVFallAlert {
 }
 
 export type PortalSettings = Record<string, unknown>;
+
+// --- Advanced Clinical Innovations & Production Architecture Types ---
+
+export interface TabletScanResult {
+  identified_tablet: string;
+  generic_compound: string;
+  indications: string[];
+  suggested_recovery_foods: string[];
+  contraindications: string[];
+  allergy_alert: boolean;
+  allergy_warning?: string;
+  pricing: {
+    estimated_wholesale_inr: number;
+    estimated_retail_mrp_inr: number;
+    patient_savings_percent: number;
+  };
+  audio_voiceover_script: string;
+}
+
+export interface ClinicalSOAPNote {
+  note_id: string;
+  patient_id: string;
+  doctor_id: string;
+  generated_at: string;
+  subjective: {
+    chief_complaint: string;
+    history_of_present_illness: string;
+    patient_stated_symptoms: string[];
+  };
+  objective: {
+    vitals_table: Record<string, number>;
+    physical_exam_findings: string[];
+    verified_lab_values: Record<string, string>;
+  };
+  assessment: {
+    primary_differential: string;
+    esi_triage_acuity: string;
+    secondary_hypotheses: string[];
+    icd10_codes: string[];
+  };
+  plan: {
+    pharmacotherapy: string[];
+    specialist_consults: string[];
+    discharge_criteria: string[];
+    rxnorm_codes: string[];
+  };
+  interoperability_export: {
+    abdm_bundle_ready: boolean;
+    epic_cerner_fhir_json: string;
+  };
+}
+
+export interface CryptographicBlackBoxAudit {
+  verified: boolean;
+  total_audit_blocks: number;
+  chain_integrity: string;
+  root_hash_sha256: string;
+  latest_block_hash: string;
+  ledger_tamper_evident: boolean;
+}
+
+export interface RPPGFaceVitalsResult {
+  scan_type: string;
+  status: string;
+  estimated_heart_rate_bpm: number;
+  estimated_hrv_rmssd: number;
+  estimated_respiratory_rate: number;
+  confidence_score: number;
+  signal_quality: string;
+}
+
+export interface FASTStrokeResult {
+  screen_name: string;
+  stroke_code_activated: boolean;
+  findings: {
+    facial_droop_detected: boolean;
+    arm_drift_detected: boolean;
+    slurred_speech_detected: boolean;
+  };
+  tpa_golden_window_hours_remaining: number;
+  immediate_directive: string;
+}
+
+export interface GreenCorridorPreemption {
+  corridor_id: string;
+  ambulance_id: string;
+  destination_hospital: string;
+  signal_preemption_active: boolean;
+  traffic_lights_cleared_count: number;
+  estimated_transit_time_saved_minutes: number;
+}
+
+export interface ABDMPreauthBundle {
+  claim_id: string;
+  patient_id: string;
+  abdm_health_id: string;
+  scheme: string;
+  cashless_preauth_status: string;
+  approved_amount_inr: number;
+  icd10_diagnosis: string;
+}
+
+export interface HelmetHeatStrain {
+  patient_id: string;
+  sweat_sodium_mmol_l: number;
+  sweat_potassium_mmol_l: number;
+  skin_temperature_c: number;
+  heat_strain_level: string;
+  dehydration_percentage: number;
+  mandatory_rest_minutes: number;
+  warning_audio_script: string;
+}
+
+export interface MaskBreathomicsVOCs {
+  patient_id: string;
+  exhaled_acetone_ppm: number;
+  exhaled_ammonia_ppm: number;
+  exhaled_nitric_oxide_ppb: number;
+  dka_risk: string;
+  renal_uremia_risk: string;
+  acute_asthma_inflammation: string;
+  clinical_summary: string;
+}
+

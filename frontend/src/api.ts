@@ -1,17 +1,26 @@
 import type {
+  ABDMPreauthBundle,
   AmbulanceBrief,
   BluetoothDevice,
   CCTVFallAlert,
   ClinicalDossier,
+  ClinicalSOAPNote,
   Consultation,
+  CryptographicBlackBoxAudit,
   EmergencyCase,
   Evidence,
+  FASTStrokeResult,
+  GreenCorridorPreemption,
+  HelmetHeatStrain,
   HospitalFacility,
+  MaskBreathomicsVOCs,
   MultiAgentConsensus,
   Patient,
   PortalSettings,
+  RPPGFaceVitalsResult,
   RiskAssessment,
   SessionUser,
+  TabletScanResult,
   TriageItem,
   Vitals,
 } from './types';
@@ -301,4 +310,49 @@ export const api = {
       .catch(() => {});
     return () => ctrl.abort();
   },
+
+  // --- Next-Gen Clinical Innovations Endpoints ---
+  scanTabletCamera: (payload: { query?: string; ocr_text?: string }) =>
+    post<TabletScanResult>('/patients/pharmacy/scan-tablet', payload),
+
+  rppgFaceScan: (payload: { frames_count?: number }) =>
+    post<RPPGFaceVitalsResult>('/patients/diagnostics/rppg-face-scan', payload),
+
+  fastStrokeScreen: (payload: { facial_droop: boolean; arm_drift: boolean; slurred_speech: boolean }) =>
+    post<FASTStrokeResult>('/patients/diagnostics/fast-stroke-screen', payload),
+
+  coughAcousticScreen: (payload: { signature: string }) =>
+    post<Record<string, unknown>>('/patients/diagnostics/cough-acoustic', payload),
+
+  generateSOAPNote: (patientId: string, payload: { conversation_transcript?: string; clinician_notes?: string }) =>
+    post<ClinicalSOAPNote>(`/doctors/patients/${patientId}/soap-note`, payload),
+
+  verifyBlackBoxAudit: () =>
+    req<CryptographicBlackBoxAudit>('/audit/black-box/verify'),
+
+  getHelmetHeatStrain: (patientId: string, params?: { sodium?: number; potassium?: number; skin_temp?: number }) => {
+    const q = new URLSearchParams({
+      patient_id: patientId,
+      sodium: String(params?.sodium ?? 48.0),
+      potassium: String(params?.potassium ?? 6.2),
+      skin_temp: String(params?.skin_temp ?? 38.0),
+    });
+    return req<HelmetHeatStrain>(`/emergency/diagnostics/helmet-heat-strain?${q.toString()}`);
+  },
+
+  getMaskBreathVOCs: (patientId: string, params?: { acetone?: number; ammonia?: number; no_ppb?: number }) => {
+    const q = new URLSearchParams({
+      patient_id: patientId,
+      acetone: String(params?.acetone ?? 0.8),
+      ammonia: String(params?.ammonia ?? 0.5),
+      no_ppb: String(params?.no_ppb ?? 18.0),
+    });
+    return req<MaskBreathomicsVOCs>(`/emergency/diagnostics/mask-breath-vocs?${q.toString()}`);
+  },
+
+  requestGreenCorridor: (payload: { ambulance_id: string; hospital_id: string; latitude: number; longitude: number }) =>
+    post<GreenCorridorPreemption>('/emergency/green-corridor', payload),
+
+  requestABDMPreauth: (payload: { patient_id: string; diagnosis_code: string; procedure_code: string; cost_inr: number }) =>
+    post<ABDMPreauthBundle>('/emergency/insurance/abdm-preauth', payload),
 };
