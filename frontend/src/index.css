@@ -1,0 +1,186 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Outfit", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-mono: "Geist Mono", ui-monospace, SFMono-Regular, Consolas, Menlo, monospace;
+
+  --color-clinic-bg: #262624;
+  --color-clinic-card: #2c2c2b;
+  --color-clinic-popover: #30302e;
+  --color-clinic-primary: #d97757;
+  --color-clinic-secondary: #faf9f5;
+  --color-clinic-accent: #1a1915;
+  --color-clinic-muted: #1b1b19;
+  --color-clinic-border: #3e3e38;
+  --color-clinic-input: #52514a;
+  --color-clinic-ring: #d97757;
+  --color-clinic-sidebar: #1f1e1d;
+  --color-clinic-sidebar-primary: #343434;
+  --color-clinic-sidebar-accent: #0f0f0e;
+  --color-clinic-chart-1: #b05730;
+  --color-clinic-chart-2: #9c87f5;
+  --color-clinic-chart-3: #1a1915;
+  --color-clinic-chart-4: #2f2b48;
+  --color-clinic-chart-5: #b4552d;
+}
+
+html, body, #root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: #262624;
+  color: #faf9f5;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+button, input, select, textarea, a {
+  font-family: var(--font-sans);
+  outline: none;
+  focus-visible: outline-none;
+  focus-visible:ring-2;
+  focus-visible:ring:#d97757/60;
+}
+
+button, select, input {
+  min-height: 44px;
+}
+
+.section-pad {
+  padding: 2rem 1.5rem;
+  padding-left: clamp(1rem, 4vw, 2rem);
+  padding-right: clamp(1rem, 4vw, 2rem);
+  padding-top: 3rem;
+  padding-bottom: clamp(2rem, 6vh, 4rem);
+}
+.section-title {
+  margin-bottom: 1rem;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #d97757;
+}
+.section-heading {
+  margin-bottom: 1rem;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: #faf9f5;
+}
+.section-copy {
+  margin-bottom: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: #a9a99f;
+  max-width: 40rem;
+}
+
+.clinic-card {
+  border-radius: 24px;
+  border: 1px solid #3e3e38;
+  background: #2c2c2b;
+  padding: 1.5rem 2rem;
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+}
+.clinic-card p-6 {
+  padding: 1.5rem;
+}
+.clinic-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 1.5rem;
+  border-radius: 10px;
+  border: none;
+  background: #d97757;
+  color: #1a1915;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease, transform 0.1s ease;
+}
+.clinic-btn-primary:hover {
+  background: #e58a6e;
+}
+.clinic-btn-ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 44px;
+  padding: 0 1.5rem;
+  border-radius: 10px;
+  border: 1px solid #3e3e38;
+  background: #2c2c2b;
+  color: #faf9f5;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.clinic-btn-ghost:hover {
+  background: #30302e;
+}
+.clinic-input {
+  width: 100%;
+  height: 44px;
+  padding: 0 1rem;
+  border-radius: 10px;
+  border: 1px solid #52514a;
+  background: #1b1b19;
+  color: #faf9f5;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+.clinic-input:focus {
+  border-color: #d97757;
+  box-shadow: 0 0 0 3px rgba(217, 119, 87, 0.15);
+}
+
+.clinic-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  height: 28px;
+  padding: 0 0.75rem;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.clinic-badge-cyan {
+  background: rgba(217, 119, 87, 0.12);
+  color: #d97757;
+}
+.clinic-badge-amber {
+  background: rgba(242, 185, 85, 0.12);
+  color: #9a6b1e;
+}
+.clinic-badge-rose {
+  background: rgba(239, 68, 68, 0.12);
+  color: #b91c40;
+}
+.clinic-badge-emerald {
+  background: rgba(65, 214, 154, 0.12);
+  color: #41d69a;
+}
+
+.shadow-sm {
+  box-shadow: 0 2px 12px rgba(15, 23, 42, 0.05);
+}
+.shadow-lg {
+  box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
