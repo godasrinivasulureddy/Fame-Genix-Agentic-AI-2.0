@@ -212,6 +212,10 @@ def run_assessment(db: Session, patient_id: str, session_id: str | None = None) 
     db.commit()
     db.refresh(assessment)
 
+    # Attach triggered safety rules so API consumers (e.g. direct assessment
+    # endpoint) can surface authoritative rule triage to the frontend.
+    assessment._triggered_safety_rules = fused["triggered_safety_rules"]
+
     event_bus.publish(RISK_ASSESSMENT_CREATED, {
         "patient_id": patient_id, "assessment_id": assessment.id,
         "risk_score": assessment.risk_score, "confidence_score": assessment.confidence_score,

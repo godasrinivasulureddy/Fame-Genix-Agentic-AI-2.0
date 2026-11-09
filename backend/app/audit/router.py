@@ -28,4 +28,6 @@ def verify_cryptographic_black_box(
     """Verifies cryptographic chain of custody & returns latest root hash."""
     from app.audit.black_box import clinical_black_box
     res = clinical_black_box.verify_chain_integrity()
+    # Expose the chain tail so admin portals can visualize the SHA-256 ledger.
+    res["chain"] = [b.model_dump() for b in clinical_black_box.chain[-20:]]
     return ok(res)

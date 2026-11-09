@@ -1,0 +1,54 @@
+# FAME-GENIX 2.0 — Hackathon Cloud Deployment
+# One-command: docker compose up --build
+#
+# Services:
+#   backend  : FastAPI clinical AI engine        -> http://localhost:8000  (Swagger at /docs)
+#   frontend : React 18 + Vite portal (Nginx)    -> http://localhost:3000
+#
+# Environment variables (set in .env or your platform):
+#   GEMINI_API_KEY    Google GenAI multimodal foundation model
+#   NEBIUS_API_KEY    Nebius Token Factory / NVIDIA Nemotron inference
+#   TAVILY_API_KEY    Tavily medical-guidelines search (RAG)
+#   JWT_SECRET        Signing key for access/refresh JWTs (change in production!)
+#   CORS_ALLOW_ORIGINS comma-separated allowed origins (default http://localhost:3000)
+version: "3.8"
+
+services:
+  backend:
+    build: ./backend
+    container_name: famegenix-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      # Persisted SQLite medical database (survives container restarts)
+      - fame_genix_data:/data
+    environment:
+      - DATABASE_URL=sqlite:////data/fame_genix.db
+      - ENVIRONMENT=production
+      - SIMULATION_MODE=true
+      - CORS_ALLOW_ORIGINS=http://localhost:3000
+      - GEMINI_API_KEY=${GEMINI_API_KEY:-}
+      - NEBIUS_API_KEY=${NEBIUS_API_KEY:-}
+      - NEBIUS_BASE_URL=https://api.tokenfactory.nebius.ai/v1
+      - NVIDIA_MODEL=meta/llama-3.1-70b-instruct
+      - TAVILY_API_KEY=${TAVILY_API_KEY:-}
+      - JWT_SECRET=${JWT_SECRET:-fame_genix_production_secret_key_32_bytes_long_safe_hs256}
+      - AI_ENABLED=true
+      - AI_TIMEOUT_SECONDS=30
+    restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    container_name: famegenix-frontend
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    environment:
+      # Relative base path works because Nginx proxies /api to the backend on the same origin.
+      - VITE_API_BASE=/api/v1
+    restart: unless-stopped
+
+volumes:
+  fame_genix_data:
+    driver: local

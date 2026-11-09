@@ -19,14 +19,19 @@ from app.ai.router import router as ai_router
 from app.images.router import router as images_router
 from app.reports.router import router as reports_router
 from app.core.sse_router import router as sse_router
+from app.rag.router import router as rag_router
 from app.core.settings_router import router as settings_router
+from app.audit.black_box import clinical_black_box
 
 app = FastAPI(title=settings.APP_NAME, version="0.1.0")
 
+_cors_origins = [o.strip() for o in settings.CORS_ALLOW_ORIGINS.split(",") if o.strip()] or ["http://localhost:3000"]
+_app_cors_credentials = settings.CORS_ALLOW_CREDENTIALS and _cors_origins != ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # demo-scope only; restrict in real deployment
-    allow_credentials=True,
+    allow_origins=_cors_origins,
+    allow_credentials=_app_cors_credentials,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -48,6 +53,7 @@ app.include_router(ai_router)
 app.include_router(images_router)
 app.include_router(reports_router)
 app.include_router(sse_router)
+app.include_router(rag_router)
 app.include_router(settings_router)
 
 
@@ -55,6 +61,18 @@ app.include_router(settings_router)
 def on_startup() -> None:
     init_db()
     train_model()  # warm the demo symptom-risk model once at boot
+
+    # Hydrate the persistent cryptographic black-box chain from the DB so the
+    # tamper-evident ledger survives server restarts. Resolve SessionLocal at
+    # runtime so test patches (in-memory SQLite) are honored.
+    from app.db import session as db_session_module
+
+    db = db_session_module.SessionLocal()
+    try:
+        clinical_black_box.bind_session_factory(db_session_module.SessionLocal)
+        clinical_black_box.load_from_db(db)
+    finally:
+        db.close()
 
     # Wire domain-event subscribers (notifications + auto emergency-case creation)
     from app.emergency.subscribers import register_subscribers as register_emergency_subscribers

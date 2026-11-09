@@ -404,6 +404,27 @@ class AuditLog(Base):
     created_at = Column(DateTime, default=utcnow, index=True)
 
 
+class CryptographicBlock(Base):
+    """
+    Persisted SHA-256 chained block of the cryptographic medical black box.
+    Survives server restarts so the audit ledger remains court-admissible and
+    tamper-evident across deployments.
+    """
+    __tablename__ = "cryptographic_blocks"
+    id = Column(String, primary_key=True, default=gen_id)
+    block_index = Column(Integer, nullable=False, index=True)
+    timestamp = Column(String, nullable=False)
+    event_type = Column(String, nullable=False)
+    actor_id = Column(String, nullable=True)
+    actor_role = Column(String, nullable=True)
+    patient_id = Column(String, nullable=True)
+    payload_hash = Column(String, nullable=False)
+    previous_block_hash = Column(String, nullable=False)
+    block_hash = Column(String, nullable=False, unique=True)
+    created_at = Column(DateTime, default=utcnow, index=True)
+    __table_args__ = (UniqueConstraint("block_index", name="uq_cryptographic_block_index"),)
+
+
 class SimulatorSession(Base):
     """Tracks the active demo simulator scenario/step per patient."""
     __tablename__ = "simulator_sessions"

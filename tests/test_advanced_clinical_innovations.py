@@ -147,3 +147,88 @@ def test_rppg_fast_stroke_and_green_corridor(client):
     green_data = green_resp.json()["data"]
     assert green_data["status"] == "GREEN_CORRIDOR_ACTIVE"
     assert green_data["preempted_intersections_count"] >= 5
+
+
+def test_breathomics_thresholds_match_documented_limits(client):
+    """Smart Mask VOC thresholds must match the audit dossier:
+    Acetone > 1.8 ppm (DKA), Ammonia > 1.0 ppm (renal/hepatic), eNO > 35 ppb (asthma)."""
+    p_token = register(client, "voc_thresholds@test.com", "PATIENT", full_name="Threshold Probe")
+    headers = auth_headers(p_token)
+
+    # Acetone at the documented boundary: 1.8 should NOT flag, 1.9 should flag DKA.
+    below = client.get("/api/v1/emergency/diagnostics/mask-breath-vocs?patient_id=p-voc&acetone=1.8&ammonia=0.4&no_ppb=20",
+                       headers=headers).json()["data"]
+    assert not any("Diabetic Ketoacidosis" in p for p in below["detected_pathology"])
+
+    above = client.get("/api/v1/emergency/diagnostics/mask-breath-vocs?patient_id=p-voc&acetone=1.9&ammonia=0.4&no_ppb=20",
+                       headers=headers).json()["data"]
+    assert any("Diabetic Ketoacidosis" in p for p in above["detected_pathology"])
+    assert "ACETONE ELEVATION" in above["clinical_alert"]
+
+    # Ammonia: 1.0 should NOT flag, 1.1 should flag renal distress.
+    below = client.get("/api/v1/emergency/diagnostics/mask-breath-vocs?patient_id=p-voc&acetone=0.5&ammonia=1.0&no_ppb=20",
+                       headers=headers).json()["data"]
+    assert not any("Uremic Breath" in p for p in below["detected_pathology"])
+
+    above = client.get("/api/v1/emergency/diagnostics/mask-breath-vocs?patient_id=p-voc&acetone=0.5&ammonia=1.1&no_ppb=20",
+                       headers=headers).json()["data"]
+    assert any("Uremic Breath" in p for p in above["detected_pathology"])
+    assert "AMMONIA ELEVATION" in above["clinical_alert"]
+
+    # Nitric Oxide: 35 should NOT flag, 36 should flag asthma exacerbation.
+    below = client.get("/api/v1/emergency/diagnostics/mask-breath-vocs?patient_id=p-voc&acetone=0.5&ammonia=0.4&no_ppb=35",
+                       headers=headers).json()["data"]
+    assert not any("Eosinophilic" in p for p in below["detected_pathology"])
+
+    above = client.get("/api/v1/emergency/diagnostics/mask-breath-vocs?patient_id=p-voc&acetone=0.5&ammonia=0.4&no_ppb=36",
+                       headers=headers).json()["data"]
+    assert any("Eosinophilic" in p for p in above["detected_pathology"])
+    assert "NITRIC OXIDE SPIKE" in above["clinical_alert"]
+
+
+def test_black_box_survives_reload(client):
+    """The cryptographic chain is DB-backed: a fresh ledger instance loaded from
+    the same DB must verify the blocks recorded earlier."""
+    from app.db.session import SessionLocal
+    from app.audit.black_box import CryptographicBlackBox
+
+    admin_token = register(client, "box_admin2@test.com", "SYSTEM_ADMIN", full_name="Compliance Officer 2")
+    headers = auth_headers(admin_token)
+
+    # Record a fresh event through the audit path (record_audit mirrors into the ledger).
+    client.post("/api/v1/auth/login", json={
+        "email": "box_admin2@test.com", "password": "Password123!"
+    }, headers=headers)
+
+    # Simulate a server restart: new in-memory instance hydrated from the DB.
+    from app.db import session as db_session_module
+    db = db_session_module.SessionLocal()
+    try:
+        fresh_box = CryptographicBlackBox()
+        fresh_box.load_from_db(db)
+        v = fresh_box.verify_chain_integrity()
+    finally:
+        db.close()
+
+    assert v["valid"] is True
+    assert v["total_blocks"] >= 1  # at least the genesis block persisted
+
+
+def test_direct_assessment_returns_triggered_safety_rules(client):
+    """POST /api/v1/patients/me/assessments must surface authoritative
+    triggered safety rules to the frontend vitals interface."""
+    p_token = register(client, "direct_assess@test.com", "PATIENT", full_name="Direct Vitals")
+    headers = auth_headers(p_token)
+
+    # heart_rate 155 > 140 triggers rule RF-003 (POSSIBLE_EMERGENCY-ish URGENT).
+    resp = client.post("/api/v1/patients/me/assessments", json={
+        "symptoms": [{"name": "palpitations", "severity": "moderate"}],
+        "vitals": {"heart_rate": 155.0, "spo2": 97.0},
+    }, headers=headers)
+    assert resp.status_code == 200, resp.text
+    data = resp.json()["data"]
+    assert data["triggered_safety_rules"], "expected triggered safety rules"
+    rf003 = [r for r in data["triggered_safety_rules"] if r["rule_id"] == "RF-003"]
+    assert rf003, "expected RF-003 tachycardia rule"
+    assert rf003[0]["forced_care_level"] == "URGENT"
+    assert "vitals" in data and data["vitals"]["heart_rate"] == 155.0

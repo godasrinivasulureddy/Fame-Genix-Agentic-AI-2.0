@@ -16,10 +16,24 @@ from app.db.session import get_db
 router = APIRouter(prefix="/api/v1/auth", tags=["auth"])
 
 
+# Roles that may NOT be self-registered. Clinician, emergency operator,
+# ambulance team and system-admin accounts must be created through an
+# administrative invite/onboarding flow (or the seed script) to preserve the
+# strict privilege boundary documented for FAME-GENIX.
+_SELF_SERVICE_ROLES = {Role.PATIENT}
+
+
 @router.post("/register")
 def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     if payload.role not in Role.ALL:
         raise app_error("VALIDATION_ERROR", f"role must be one of {Role.ALL}")
+    if payload.role not in _SELF_SERVICE_ROLES:
+        raise app_error(
+            "ACCESS_DENIED",
+            f"Self-registration as '{payload.role}' is not permitted. "
+            f"Self-service registration is limited to: {', '.join(sorted(_SELF_SERVICE_ROLES))}. "
+            f"Clinician/admin accounts must be provisioned by a SYSTEM_ADMIN.",
+        )
     if db.query(User).filter(User.email == payload.email).first():
         raise app_error("ALREADY_EXISTS", "Email already registered.")
 
@@ -31,8 +45,6 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
         count = db.query(Patient).count() + 1
         pub_id = f"FG-P-{str(count).zfill(6)}"
         db.add(Patient(user_id=user.id, full_name=payload.full_name, public_id=pub_id))
-    elif payload.role == Role.DOCTOR:
-        db.add(Doctor(user_id=user.id, full_name=payload.full_name))
 
     db.commit()
     record_audit(db, user.id, user.role, "REGISTER", "user", user.id)

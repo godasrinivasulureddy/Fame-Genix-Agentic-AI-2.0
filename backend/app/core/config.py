@@ -24,6 +24,11 @@ class Settings(BaseSettings):
 
     ALLOW_QML: bool = False
 
+    # CORS allow-list (comma-separated). Defaults to the local dev frontend.
+    # Never allow wildcard with credentials in a production medical deployment.
+    CORS_ALLOW_ORIGINS: str = os.getenv("CORS_ALLOW_ORIGINS", "http://localhost:3000")
+    CORS_ALLOW_CREDENTIALS: bool = os.getenv("CORS_ALLOW_CREDENTIALS", "true").lower() == "true"
+
     GEMINI_API_KEY: str = os.getenv("GEMINI_API_KEY", "")
     GEMINI_MODEL: str = os.getenv("GEMINI_MODEL", "gemini-3.6-flash")
     AI_ENABLED: bool = os.getenv("AI_ENABLED", "true").lower() == "true"

@@ -38,10 +38,39 @@ async def explain_assessment(payload: AssessmentExplainRequest, db: Session = De
 
 
 @router.post("/patient-insight")
-async def generate_patient_insight(payload: PatientInsightRequest, db: Session = Depends(get_db)):
-    result = await ai_service.generate_patient_insight(payload)
-    record_audit(db, None, "PATIENT", "AI_PATIENT_INSIGHT", "patient_insight", str(payload.risk_score))
-    return ok(result.model_dump())
+async def generate_patient_insight(
+    payload: dict,
+    db: Session = Depends(get_db)
+):
+    from app.db.models import RiskAssessment, RiskFactor, Patient
+    # Support both { assessment_id: str } from frontend and full PatientInsightRequest
+    assessment_id = payload.get("assessment_id")
+    if assessment_id:
+        a = db.query(RiskAssessment).filter(RiskAssessment.id == assessment_id).first()
+        if not a:
+            raise app_error("NOT_FOUND", "Assessment not found.")
+        factors = db.query(RiskFactor).filter(RiskFactor.assessment_id == a.id).all()
+        top_factors = [f.factor_name for f in factors]
+        
+        req = PatientInsightRequest(
+            risk_score=float(a.risk_score),
+            confidence_score=float(getattr(a, "confidence_score", 90.0)),
+            care_level=a.care_level or "URGENT",
+            top_factors=top_factors,
+            language="en"
+        )
+        result = await ai_service.generate_patient_insight(req)
+        record_audit(db, None, "PATIENT", "AI_PATIENT_INSIGHT", "patient_insight", str(a.risk_score))
+        res_data = result.model_dump()
+        res_data["suggested_specialty"] = result.specialist.specialty
+        return ok(res_data)
+
+    req = PatientInsightRequest(**payload)
+    result = await ai_service.generate_patient_insight(req)
+    record_audit(db, None, "PATIENT", "AI_PATIENT_INSIGHT", "patient_insight", str(req.risk_score))
+    res_data = result.model_dump()
+    res_data["suggested_specialty"] = result.specialist.specialty
+    return ok(res_data)
 
 
 @router.post("/chat")

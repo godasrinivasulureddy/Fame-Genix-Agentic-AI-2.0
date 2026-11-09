@@ -17,6 +17,19 @@ def test_login_wrong_password_rejected(client):
     assert resp.json()["error"]["code"] == "INVALID_CREDENTIALS"
 
 
+def test_non_patient_self_registration_is_rejected(client):
+    """Privilege boundary: PATIENT is the only role open to self-registration."""
+    for privileged_role in ["DOCTOR", "EMERGENCY_OPERATOR", "SYSTEM_ADMIN", "AMBULANCE_TEAM"]:
+        resp = client.post("/api/v1/auth/register", json={
+            "email": f"priv_{privileged_role.lower()}@test.com",
+            "password": "Password123!",
+            "role": privileged_role,
+            "full_name": f"Privileged {privileged_role}",
+        })
+        assert resp.status_code == 403, resp.text
+        assert resp.json()["error"]["code"] == "ACCESS_DENIED"
+
+
 def test_forbidden_role_cannot_access_doctor_queue(client):
     token = register(client, "p3@test.com", "PATIENT")
     resp = client.get("/api/v1/doctors/queue", headers=auth_headers(token))

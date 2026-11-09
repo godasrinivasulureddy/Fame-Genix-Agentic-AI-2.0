@@ -16,6 +16,7 @@ from app.patients.schemas import (
     PatientUpdate,
     PatientObservationCreate,
     PatientObservationOut,
+    DirectAssessmentRequest,
 )
 from app.patients.service import (assert_can_view_patient, build_timeline,
                                    get_patient_by_user, get_patient_or_404)
@@ -537,6 +538,100 @@ def download_patient_health_pdf(
 
 
 
+
+
+
+@router.post("/me/assessments")
+def create_direct_assessment(
+    payload: DirectAssessmentRequest,
+    user: User = Depends(require_role(Role.PATIENT)),
+    db: Session = Depends(get_db)
+):
+    """
+    Direct multi-modal assessment creation endpoint.
+    Takes symptoms and vitals directly, records telemetry, and runs risk fusion.
+    """
+    patient = get_patient_by_user(db, user)
+
+    from app.db.models import Device, DeviceReading, SymptomSession, SymptomEntry
+    from app.risk.baseline import update_baseline
+    from app.assessments.service import run_assessment
+    from app.assessments.router import _serialize as serialize_assessment
+    from app.risk.safety.rules import RULES
+
+    # 1. Ensure a direct-entry device exists for patient vitals (FK compliance)
+    dev = db.query(Device).filter(Device.patient_id == patient.id).first()
+    if not dev:
+        dev = Device(patient_id=patient.id, type="GENERIC_DEVICE", status="SIMULATED")
+        db.add(dev)
+        db.flush()
+    device_id = dev.id
+
+    vitals_dict = payload.vitals or {}
+    for metric, val in vitals_dict.items():
+        if val is not None:
+            norm_metric = metric.lower().strip()
+            unit = "%" if norm_metric == "spo2" else "bpm" if norm_metric == "heart_rate" else "/min" if norm_metric == "respiratory_rate" else "C"
+            db_reading = DeviceReading(
+                device_id=device_id,
+                patient_id=patient.id,
+                metric=norm_metric,
+                value=float(val),
+                unit=unit,
+                source_type="PATIENT_ENTERED",
+                quality="GOOD",
+            )
+            db.add(db_reading)
+            update_baseline(db, patient.id, norm_metric, float(val))
+    db.commit()
+
+    # 2. Record symptoms session if provided
+    session_id = None
+    if payload.symptoms:
+        raw_text = "; ".join([f"{s.name} ({s.severity})" for s in payload.symptoms])
+        session = SymptomSession(patient_id=patient.id, raw_text=raw_text)
+        db.add(session)
+        db.flush()
+        session_id = session.id
+        for s in payload.symptoms:
+            concept_name = s.name.lower().replace(" ", "_")
+            db.add(SymptomEntry(session_id=session.id, concept=concept_name, severity=s.severity.lower()))
+        db.commit()
+
+    # 3. Run assessment
+    assessment = run_assessment(db, patient.id, session_id=session_id)
+    serialized = serialize_assessment(assessment, db)
+
+    # Attach vitals for frontend Vitals interface
+    if vitals_dict:
+        serialized["vitals"] = {k: float(v) for k, v in vitals_dict.items() if v is not None}
+    else:
+        latest_v = {}
+        for m in ["heart_rate", "spo2", "respiratory_rate", "temperature"]:
+            r = db.query(DeviceReading).filter(DeviceReading.patient_id == patient.id, DeviceReading.metric == m).order_by(DeviceReading.recorded_at.desc()).first()
+            if r:
+                latest_v[m] = r.value
+        if latest_v:
+            serialized["vitals"] = latest_v
+
+    # Map authoritative safety-engine rules to the frontend TriggeredSafetyRule shape.
+    triggered_rules = []
+    sev_map = {
+        "POSSIBLE_EMERGENCY": "POSSIBLE_EMERGENCY",
+        "URGENT": "URGENT",
+        "ROUTINE_REVIEW": "ROUTINE_REVIEW",
+    }
+    for rule in getattr(assessment, "_triggered_safety_rules", []) or []:
+        sev = rule.get("severity", "")
+        triggered_rules.append({
+            "rule_id": rule.get("rule_id", ""),
+            "condition": rule.get("condition", ""),
+            "reason": rule.get("reason", ""),
+            "forced_care_level": sev_map.get(sev, sev),
+        })
+    serialized["triggered_safety_rules"] = triggered_rules
+
+    return ok(serialized)
 
 @router.post("/pharmacy/scan-tablet")
 def scan_tablet_camera(

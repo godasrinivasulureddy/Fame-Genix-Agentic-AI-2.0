@@ -76,13 +76,17 @@ class AdvancedClinicalDiagnosticHub:
         pathologies = []
         alert = None
 
-        if acetone_ppm > 2.0:
+        # Documented clinical thresholds (FAME-GENIX 2.0 audit):
+        # Acetone > 1.8 ppm  -> impending Diabetic Ketoacidosis
+        # Ammonia > 1.0 ppm  -> uremic/hepatic encephalopathy risk
+        # Nitric Oxide > 35 ppb -> acute eosinophilic asthma exacerbation
+        if acetone_ppm > 1.8:
             pathologies.append("Impending Diabetic Ketoacidosis (DKA) — Ketone breath detected")
             alert = "ACETONE ELEVATION: Evaluate blood ketones and capillary glucose immediately."
-        if ammonia_ppm > 1.2:
+        if ammonia_ppm > 1.0:
             pathologies.append("Uremic Breath (Fetis Hepaticus / Renal Clearance Impairment)")
             alert = "AMMONIA ELEVATION: Elevated blood urea nitrogen (BUN) and renal distress suspected."
-        if nitric_oxide_ppb > 50.0:
+        if nitric_oxide_ppb > 35.0:
             pathologies.append("Airway Eosinophilic Inflammation (Acute Asthmatic Bronchospasm)")
             alert = "NITRIC OXIDE SPIKE: Inhaled corticosteroid/bronchodilator review advised."
 
