@@ -5,6 +5,7 @@ Task T4.10
 
 import asyncio
 import json
+import logging
 from typing import AsyncGenerator
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import StreamingResponse
@@ -12,6 +13,8 @@ from fastapi.responses import StreamingResponse
 from app.core.dependencies import get_current_user
 from app.db.models import User
 from app.core.events import event_bus
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1/events", tags=["events"])
 
@@ -29,18 +32,25 @@ async def event_generator(request: Request, user: User) -> AsyncGenerator[str, N
     }
     yield f"data: {json.dumps(init_msg)}\n\n"
 
-    while True:
-        if await request.is_disconnected():
-            break
+    try:
+        while True:
+            if await request.is_disconnected():
+                break
 
-        current_len = len(event_bus.log)
-        if current_len > last_idx:
-            for i in range(last_idx, current_len):
-                entry = event_bus.log[i]
-                yield f"event: {entry.get('event', 'message')}\ndata: {json.dumps(entry.get('payload', {}))}\n\n"
-            last_idx = current_len
+            current_len = len(event_bus.log)
+            if current_len > last_idx:
+                for i in range(last_idx, current_len):
+                    entry = event_bus.log[i]
+                    yield f"event: {entry.get('event', 'message')}\ndata: {json.dumps(entry.get('payload', {}))}\n\n"
+                last_idx = current_len
 
-        await asyncio.sleep(1.0)
+            await asyncio.sleep(1.0)
+    except (asyncio.CancelledError, GeneratorExit):
+        # Gracefully exit when client disconnects or server shuts down with Ctrl+C
+        return
+    except Exception as exc:
+        logger.debug(f"[SSE] Stream generator disconnected: {exc}")
+        return
 
 
 @router.get("/stream")

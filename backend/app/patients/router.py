@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends, HTTPException, Query, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Response
 from datetime import datetime
 from sqlalchemy.orm import Session
 
@@ -460,7 +460,7 @@ def get_patient_clinical_dossier(
                     "status": e.status,
                     "trigger_type": e.trigger_type,
                     "created_at": e.created_at,
-                    "resolved_at": e.completed_at
+                    "resolved_at": (e.updated_at if getattr(e, "status", None) in ["RESOLVED", "CLOSED", "COMPLETED"] else None)
                 }
                 for e in emergency_cases
             ]
@@ -653,7 +653,27 @@ def scan_tablet_camera(
 
     query = payload.get("query") or payload.get("ocr_text", "Dolo 650")
     result = pharmacy_engine.identify_tablet_from_scan(query, user_allergies=allergies)
-    return ok(result.model_dump())
+    d = result.model_dump()
+    is_contra = d.get("safety_rating") == "CONTRAINDICATED"
+    recovery = (d.get("recovery_food_guidance") or {}).get("recommended", [])
+    mapped = {
+        "identified_tablet": d.get("brand_name") or query,
+        "generic_compound": d.get("generic_name", ""),
+        "indications": d.get("target_diseases_symptoms", []),
+        "suggested_recovery_foods": recovery,
+        "contraindications": (
+            [d.get("safety_notes", "Contraindicated based on your documented allergy profile.")] if is_contra else []
+        ),
+        "allergy_alert": is_contra,
+        "allergy_warning": d.get("safety_notes") if is_contra else None,
+        "pricing": {
+            "estimated_wholesale_inr": d.get("wholesale_price_inr", 0.0),
+            "estimated_retail_mrp_inr": d.get("maximum_retail_price_inr", 0.0),
+            "patient_savings_percent": d.get("potential_savings_percent", 0.0),
+        },
+        "audio_voiceover_script": d.get("voiceover_script", ""),
+    }
+    return ok(mapped)
 
 
 @router.post("/diagnostics/rppg-face-scan")

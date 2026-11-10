@@ -11,39 +11,66 @@ class AIStatusData(BaseModel):
 
 
 class SymptomExtractRequest(BaseModel):
-    text: str = Field(..., description="Raw natural text describing symptoms")
+    text: Optional[str] = Field(None, description="Raw natural text describing symptoms")
+    raw_text: Optional[str] = Field(None, description="Raw natural text describing symptoms alias")
     language: str = Field("auto", description="Preferred language or 'auto'")
+
+    def get_text(self) -> str:
+        return self.raw_text or self.text or ""
 
 
 class ExtractedSymptomItem(BaseModel):
-    name: str
+    name: Optional[str] = None
+    canonical_name: Optional[str] = None
     severity: Optional[Union[str, int]] = None
     duration_hours: Optional[int] = None
+    duration: Optional[str] = None
+    body_site: Optional[str] = None
+
+    def __init__(self, **data):
+        if "name" not in data and "canonical_name" in data:
+            data["name"] = data["canonical_name"]
+        elif "canonical_name" not in data and "name" in data:
+            data["canonical_name"] = data["name"]
+        super().__init__(**data)
 
 
 class MissingInformationItem(BaseModel):
-    question: str
+    question: Optional[str] = None
+    field: Optional[str] = None
     reason: Optional[str] = ""
 
 
 class SymptomExtractResponse(BaseModel):
-    original_text: str
-    detected_language: str = "English"
+    original_text: Optional[str] = None
+    raw_text: Optional[str] = None
+    detected_language: Optional[str] = "English"
+    language_detected: Optional[str] = "English"
     symptoms: List[ExtractedSymptomItem] = []
     red_flag_phrases: List[str] = []
-    missing_information: List[Union[MissingInformationItem, str]] = []
-    source: str = "AI_GEMINI"  # Or "DETERMINISTIC_FALLBACK"
+    missing_information: List[Union[MissingInformationItem, str, dict]] = []
+    clarifying_questions: List[str] = []
+    confidence_score: float = 0.85
+    suggested_specialty: Optional[str] = None
+    source: str = "AI_GEMINI"
 
 
 class AssessmentExplainRequest(BaseModel):
     risk_score: float = Field(..., ge=0, le=100)
-    confidence_score: float = Field(..., ge=0, le=100)
-    care_level: str
+    confidence_score: float = Field(default=85.0, ge=0, le=100)
+    care_level: Optional[str] = None
+    acuity_tier: Optional[str] = None
     top_factors: List[str] = []
+    concepts: List[str] = []
+    triggered_rules: List[str] = []
+    vitals: Dict[str, Any] = {}
     missing_evidence: List[str] = []
     language: str = Field("English", description="Target output language (English, Telugu, Hindi)")
     patient_profile: Optional[str] = None
     health_notes: Optional[List[str]] = None
+
+    def get_tier(self) -> str:
+        return self.care_level or self.acuity_tier or "STABLE"
 
 
 class AssessmentExplainResponse(BaseModel):
@@ -52,6 +79,9 @@ class AssessmentExplainResponse(BaseModel):
     suggested_specialty: str = "General Medicine"
     safety_level: str = "NORMAL"
     requires_professional_review: bool = False
+    immediate_actions: List[str] = []
+    care_guidance: Optional[str] = None
+    limitations: List[str] = []
     source: str = "AI_GEMINI"
 
 

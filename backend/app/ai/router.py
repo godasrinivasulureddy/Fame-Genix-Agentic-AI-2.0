@@ -1,4 +1,4 @@
-﻿from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.core.response import ok
@@ -24,15 +24,15 @@ def get_ai_status():
 
 
 @router.post("/symptoms/extract")
-async def extract_symptoms(payload: SymptomExtractRequest, db: Session = Depends(get_db)):
-    result = await ai_service.extract_symptoms(payload)
+def extract_symptoms(payload: SymptomExtractRequest, db: Session = Depends(get_db)):
+    result = ai_service.extract_symptoms(payload)
     record_audit(db, None, "PATIENT", "AI_EXTRACT_SYMPTOMS", "symptom_extract", "text_input")
     return ok(result.model_dump())
 
 
 @router.post("/assessment/explain")
-async def explain_assessment(payload: AssessmentExplainRequest, db: Session = Depends(get_db)):
-    result = await ai_service.explain_assessment(payload)
+def explain_assessment(payload: AssessmentExplainRequest, db: Session = Depends(get_db)):
+    result = ai_service.explain_assessment(payload)
     record_audit(db, None, "PATIENT", "AI_EXPLAIN_ASSESSMENT", "risk_assessment", str(payload.risk_score))
     return ok(result.model_dump())
 
@@ -52,21 +52,37 @@ async def generate_patient_insight(
         factors = db.query(RiskFactor).filter(RiskFactor.assessment_id == a.id).all()
         top_factors = [f.factor_name for f in factors]
         
+        # Hydrate symptoms concepts if available from session
+        symptom_concepts = []
+        if a.session_id:
+            from app.db.models import SymptomEntry
+            entries = db.query(SymptomEntry).filter(SymptomEntry.session_id == a.session_id).all()
+            symptom_concepts = [e.concept for e in entries if e.concept]
+
         req = PatientInsightRequest(
             risk_score=float(a.risk_score),
             confidence_score=float(getattr(a, "confidence_score", 90.0)),
             care_level=a.care_level or "URGENT",
             top_factors=top_factors,
+            concepts=symptom_concepts,
             language="en"
         )
-        result = await ai_service.generate_patient_insight(req)
+        import inspect
+        if inspect.iscoroutinefunction(ai_service.generate_patient_insight):
+            result = await ai_service.generate_patient_insight(req)
+        else:
+            result = ai_service.generate_patient_insight(req)
         record_audit(db, None, "PATIENT", "AI_PATIENT_INSIGHT", "patient_insight", str(a.risk_score))
         res_data = result.model_dump()
         res_data["suggested_specialty"] = result.specialist.specialty
         return ok(res_data)
 
     req = PatientInsightRequest(**payload)
-    result = await ai_service.generate_patient_insight(req)
+    import inspect
+    if inspect.iscoroutinefunction(ai_service.generate_patient_insight):
+        result = await ai_service.generate_patient_insight(req)
+    else:
+        result = ai_service.generate_patient_insight(req)
     record_audit(db, None, "PATIENT", "AI_PATIENT_INSIGHT", "patient_insight", str(req.risk_score))
     res_data = result.model_dump()
     res_data["suggested_specialty"] = result.specialist.specialty
@@ -100,7 +116,11 @@ async def chat_with_ai(
             payload.patient_profile = f"{patient.full_name}, Age: {patient.age or 'N/A'}, Known: {patient.known_conditions or 'None'}"
             payload.health_notes = [n.note_text for n in recent_notes]
 
-    result = await ai_service.chat(payload)
+    import inspect
+    if inspect.iscoroutinefunction(ai_service.chat_companion):
+        result = await ai_service.chat_companion(payload)
+    else:
+        result = ai_service.chat_companion(payload)
     record_audit(db, user.id, "PATIENT", "AI_CHAT", "chat_session", "message")
     return ok(result.model_dump())
 

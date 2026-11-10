@@ -27,6 +27,9 @@ class ReportAnalysisResponse(BaseModel):
     tests: List[LabTestItem] = []
     abnormal_test_count: int = 0
     reported_critical_flag: bool = False
+    identified_conditions: List[str] = []
+    suggested_specialist: Optional[str] = "General Physician / Internal Medicine"
+    next_steps: List[str] = []
     limitations: List[str] = [
         "Extracted lab values are for reference only and must be reviewed by a qualified healthcare professional."
     ]

@@ -60,8 +60,12 @@ def map_suggested_specialty(top_factors: List[str], symptoms: List[str]) -> str:
     if any(k in normalized for k in ["eye", "vision", "ophthalm"]):
         return "Ophthalmologist (Eye Specialist)"
 
+    # Oncology / Cancer / Neoplasm
+    if any(k in normalized for k in ["tumor", "tumour", "cancer", "carcinoma", "neoplasm", "neoplastic", "neuroendocrine", "net", "oncolog", "biopsy", "adenocarcinoma", "signet", "metastasis", "metastases"]):
+        return "Medical Oncologist / Surgical Oncologist"
+
     # Gastroenterology
-    if any(k in normalized for k in ["stomach", "gastric", "vomit", "nausea", "abdomen", "diarrhea"]):
+    if any(k in normalized for k in ["stomach", "gastric", "vomit", "nausea", "abdomen", "diarrhea", "dysphagia", "swallow", "stricture", "esophag", "esophageal", "ge junction", "cardia", "reflux", "endoscop"]):
         return "Gastroenterologist (Digestive Specialist)"
 
     return "General Physician / Internal Medicine"

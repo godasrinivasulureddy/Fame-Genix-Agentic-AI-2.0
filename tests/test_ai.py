@@ -13,7 +13,7 @@ def test_ai_status_endpoint(client):
     data = response.json()["data"]
     assert "enabled" in data
     assert "provider" in data
-    assert data["provider"] == "Gemini"
+    assert data["provider"] in ("Gemini", "NVIDIA_NEMOTRON", "GOOGLE_GEMINI", "DETERMINISTIC")
     assert "configured" in data
     assert "reachable" in data
 

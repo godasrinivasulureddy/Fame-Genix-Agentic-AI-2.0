@@ -19,7 +19,7 @@ from app.symptoms.medical_nlp import (
 )
 
 TRACKED_METRICS = ["heart_rate", "spo2", "respiratory_rate", "temperature", "voc_index"]
-SEVERITY_MAP = {"mild": 0, "moderate": 1, "severe": 2}
+SEVERITY_MAP = {"low": 0, "mild": 0, "moderate": 1, "medium": 1, "high": 2, "severe": 2, "critical": 2}
 
 
 def _latest_value(db: Session, patient_id: str, metric: str) -> float | None:
@@ -33,9 +33,11 @@ def _latest_value(db: Session, patient_id: str, metric: str) -> float | None:
 
 
 def _spo2_drop_rate(db: Session, patient_id: str) -> float:
+    from datetime import datetime, timedelta
+    cutoff = datetime.utcnow() - timedelta(minutes=15)
     readings = (
         db.query(DeviceReading)
-        .filter(DeviceReading.patient_id == patient_id, DeviceReading.metric == "spo2")
+        .filter(DeviceReading.patient_id == patient_id, DeviceReading.metric == "spo2", DeviceReading.recorded_at >= cutoff)
         .order_by(DeviceReading.recorded_at.desc())
         .limit(2)
         .all()

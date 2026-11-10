@@ -545,13 +545,23 @@ def build_safety_flags(nlp_result: MedicalNLPResult) -> dict:
     if _has_accident and _has_location:
         neuro_trauma = True
 
+    # Also screen free text for critical oncologic or severe organic alert keywords
+    _has_oncology_or_organ_threat = any(
+        kw in text_lower for kw in [
+            "tumor", "tumour", "carcinoma", "neoplasm", "neoplastic", "cancer",
+            "metastasis", "metastases", "dysphagia", "stricture", "malignan",
+            "neuroendocrine"
+        ]
+    )
+
     serious_disease = (
         f("kidney_failure") or f("heart_failure") or
         f("seizure") or f("sepsis_signs") or
         f("hypoglycemia") or f("hyperglycemia") or
         f("stroke_symptoms") or f("spinal_injury") or
         nlp_result.flag_possibly("kidney_failure") or
-        nlp_result.flag_possibly("heart_failure")
+        nlp_result.flag_possibly("heart_failure") or
+        _has_oncology_or_organ_threat
     )
 
     return {

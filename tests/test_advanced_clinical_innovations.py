@@ -32,19 +32,20 @@ def test_tablet_scanner_and_price_estimation(client):
     dolo_resp = client.post("/api/v1/patients/pharmacy/scan-tablet", json={"query": "Dolo 650"}, headers=headers)
     assert dolo_resp.status_code == 200
     dolo_data = dolo_resp.json()["data"]
-    assert "Paracetamol" in dolo_data["generic_name"]
-    assert dolo_data["wholesale_price_inr"] < dolo_data["maximum_retail_price_inr"]
-    assert dolo_data["potential_savings_percent"] > 40.0
-    assert dolo_data["safety_rating"] == "SAFE_VERIFIED"
-    assert "Dolo 650 contains Paracetamol" in dolo_data["voiceover_script"]
-    assert len(dolo_data["recovery_food_guidance"]["recommended"]) >= 2
+    assert "Paracetamol" in dolo_data["generic_compound"]
+    assert dolo_data["pricing"]["estimated_wholesale_inr"] < dolo_data["pricing"]["estimated_retail_mrp_inr"]
+    assert dolo_data["pricing"]["patient_savings_percent"] > 40.0
+    assert dolo_data["allergy_alert"] is False
+    assert "Dolo 650 contains Paracetamol" in dolo_data["audio_voiceover_script"]
+    assert len(dolo_data["suggested_recovery_foods"]) >= 2
 
     # 3. Scan Augmentin 625 (Contains Amoxicillin - triggers Penicillin contraindication!)
     aug_resp = client.post("/api/v1/patients/pharmacy/scan-tablet", json={"query": "Augmentin 625"}, headers=headers)
     assert aug_resp.status_code == 200
     aug_data = aug_resp.json()["data"]
-    assert aug_data["safety_rating"] == "CONTRAINDICATED"
-    assert "ALLERGY ALERT" in aug_data["safety_notes"]
+    assert aug_data["allergy_alert"] is True
+    assert len(aug_data["contraindications"]) >= 1
+    assert "Penicillin allergy" in aug_data["contraindications"][0]
 
 
 def test_autonomous_medical_scribe_soap_note(client):

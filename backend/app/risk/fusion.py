@@ -29,19 +29,29 @@ def fuse_risk(
 
     # --- risk_score: weighted blend or input-driven ---
     if is_symptom_session:
-        # Driven exclusively by Health Analysis Intelligence text & OCR lab report analysis
+        # Driven by calibrated symptom ML risk, modulated by specific rule severity
         risk_score = min(100.0, ml_risk)
-        symptom_triggered = [r for r in triggered_rules if "reported" in r.get("reason", "").lower() or "pain" in r.get("reason", "").lower() or "consciousness" in r.get("reason", "").lower()]
-        if symptom_triggered:
-            risk_score = max(risk_score, 80.0)
-        
-        # If routine review forced, minimum risk should be 40 to avoid 100% Safe
-        if any(r.get("severity") == "ROUTINE_REVIEW" for r in triggered_rules):
-            risk_score = max(risk_score, 40.0)
+
+        # Distinguish acute emergencies from non-acute medical conditions
+        emergency_rules = [r for r in triggered_rules if r.get("severity") == "POSSIBLE_EMERGENCY"]
+        urgent_rules = [r for r in triggered_rules if r.get("severity") == "URGENT"]
+        routine_rules = [r for r in triggered_rules if r.get("severity") == "ROUTINE_REVIEW"]
+
+        if emergency_rules:
+            risk_score = max(risk_score, 85.0)
+        elif urgent_rules:
+            risk_score = max(risk_score, 70.0)
+        elif routine_rules:
+            # Recognized medical condition without acute red flags (e.g. chronic tumor, diabetes)
+            risk_score = max(risk_score, 45.0)
     else:
         risk_score = min(100.0, (0.4 * ml_risk) + (0.3 * anomaly_score) + (0.3 * drift_score))
-        if triggered_rules:
-            risk_score = max(risk_score, 80.0)
+        if any(r.get("severity") == "POSSIBLE_EMERGENCY" for r in triggered_rules):
+            risk_score = max(risk_score, 85.0)
+        elif any(r.get("severity") == "URGENT" for r in triggered_rules):
+            risk_score = max(risk_score, 70.0)
+        elif triggered_rules:
+            risk_score = max(risk_score, 45.0)
 
     # --- confidence_score: modality coverage + data quality, penalized by conflict ---
     modality_coverage = min(1.0, modalities_present / total_expected_modalities)
@@ -56,8 +66,8 @@ def fuse_risk(
         if forced and CareLevel.ORDER.index(forced) > CareLevel.ORDER.index(care_level):
             care_level = forced
 
-    # deterioration escalation: high drift alone bumps at least to PRIORITY_REVIEW
-    if drift_score >= 50 and CareLevel.ORDER.index(care_level) < CareLevel.ORDER.index(CareLevel.PRIORITY_REVIEW):
+    # deterioration escalation: high drift bumps care_level only when the patient has elevated baseline risk or acute rules
+    if drift_score >= 50 and risk_score >= 25.0 and CareLevel.ORDER.index(care_level) < CareLevel.ORDER.index(CareLevel.PRIORITY_REVIEW):
         care_level = CareLevel.PRIORITY_REVIEW
 
     missing_evidence = []

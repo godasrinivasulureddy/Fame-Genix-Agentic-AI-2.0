@@ -5,6 +5,7 @@ from app.core.events import (AMBULANCE_STATUS_CHANGED, DISPATCH_REQUESTED,
 from app.db.models import CareLevel, EmergencyCase, Patient, Role, User
 from app.db.session import SessionLocal
 from app.notifications.service import notify
+from app.notifications.gateway import notification_gateway
 
 HIGH_PRIORITY_LEVELS = {CareLevel.URGENT, CareLevel.POSSIBLE_EMERGENCY}
 
@@ -31,9 +32,26 @@ def _on_drift_detected(payload: dict) -> None:
 def _on_risk_assessment_created(payload: dict) -> None:
     db = SessionLocal()
     try:
-        user_id = _patient_user_id(db, payload["patient_id"])
+        patient_id = payload.get("patient_id")
+        patient = db.query(Patient).filter(Patient.id == patient_id).first() if patient_id else None
+        user_id = patient.user_id if patient else None
+
         if user_id:
             notify(db, user_id, "ASSESSMENT_READY", payload)
+
+        # Multi-channel notification: SMS and Email dispatch for health analysis
+        if patient:
+            care_level_str = str(payload.get("care_level", "STABLE"))
+            risk_score = float(payload.get("risk_score", 0.0))
+            notification_gateway.dispatch_critical_vitals_alert(
+                db=db,
+                patient=patient,
+                metric="AI Health Analysis Risk Score",
+                value=risk_score,
+                unit="%",
+                care_level=care_level_str
+            )
+
         if payload.get("care_level") in HIGH_PRIORITY_LEVELS:
             for doc_user_id in _user_ids_for_role(db, Role.DOCTOR):
                 notify(db, doc_user_id, "DOCTOR_REVIEW_REQUIRED", payload)

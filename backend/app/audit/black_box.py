@@ -168,6 +168,8 @@ class CryptographicBlackBox:
 
     def verify_chain_integrity(self) -> Dict[str, Any]:
         """Validates cryptographic chain against tampering."""
+        if not self.chain:
+            self._genesis()
         for i in range(1, len(self.chain)):
             current = self.chain[i]
             prev = self.chain[i - 1]

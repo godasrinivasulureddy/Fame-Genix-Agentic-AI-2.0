@@ -1,4 +1,4 @@
-﻿import json
+import json
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -102,8 +102,13 @@ def create_emergency_case(payload: CreateEmergencyRequest,
 
 
 @router.get("/cases")
-def list_cases(user=Depends(require_role(Role.EMERGENCY_OPERATOR, Role.DOCTOR)), db: Session = Depends(get_db)):
-    cases = db.query(EmergencyCase).order_by(EmergencyCase.created_at.desc()).all()
+def list_cases(
+    limit: int = 50,
+    offset: int = 0,
+    user=Depends(require_role(Role.EMERGENCY_OPERATOR, Role.DOCTOR)),
+    db: Session = Depends(get_db)
+):
+    cases = db.query(EmergencyCase).order_by(EmergencyCase.created_at.desc()).offset(offset).limit(min(100, limit)).all()
     return ok([_serialize(c, db) for c in cases])
 
 

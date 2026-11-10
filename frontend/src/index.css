@@ -192,3 +192,122 @@ button, select, input {
 .fg-ledger-entry {
   animation: fg-ledger-entry 0.5s ease-out forwards;
 }
+
+/* ===== CLAUDE SOPHISTICATED AMBER & TERRACOTTA CLINICAL PALETTE ===== */
+
+@keyframes orb-float-main {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg) scale(1);
+  }
+  33% {
+    transform: translateY(-12px) rotate(2deg) scale(1.02);
+  }
+  66% {
+    transform: translateY(10px) rotate(-2deg) scale(0.99);
+  }
+}
+
+@keyframes orb-pulse-aura {
+  0%, 100% {
+    opacity: 0.45;
+    transform: scale(1);
+    filter: drop-shadow(0 0 35px rgba(217, 119, 87, 0.4));
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 60px rgba(217, 119, 87, 0.65));
+  }
+}
+
+@keyframes laser-flow-right {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+@keyframes float-subtle-1 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(-8px, -12px); }
+}
+
+@keyframes float-subtle-2 {
+  0%, 100% { transform: translate(0, 0); }
+  50% { transform: translate(10px, -14px); }
+}
+
+.animate-orb-float {
+  animation: orb-float-main 10s ease-in-out infinite;
+}
+
+.animate-orb-pulse {
+  animation: orb-pulse-aura 4s ease-in-out infinite;
+}
+
+.animate-laser-flow {
+  background: linear-gradient(90deg, rgba(217,119,87,0) 0%, rgba(217,119,87,0.7) 50%, rgba(242,185,85,0.9) 75%, rgba(217,119,87,0) 100%);
+  background-size: 200% 100%;
+  animation: laser-flow-right 3s linear infinite;
+}
+
+.animate-float-1 {
+  animation: float-subtle-1 9s ease-in-out infinite;
+}
+
+.animate-float-2 {
+  animation: float-subtle-2 11s ease-in-out infinite;
+}
+
+/* Claude Premium Frosted Glassmorphism - Charcoal, Warm Sand & Muted Amber */
+.glass-panel-claude {
+  background: rgba(30, 29, 27, 0.72);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(217, 119, 87, 0.16);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45), inset 0 1px 1px rgba(250, 249, 245, 0.08);
+}
+
+.glass-panel-claude-hover {
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.glass-panel-claude-hover:hover {
+  background: rgba(38, 37, 34, 0.88);
+  border-color: rgba(217, 119, 87, 0.38);
+  transform: translateY(-3px);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.55), inset 0 1px 2px rgba(217, 119, 87, 0.2);
+}
+
+.glass-pill-claude {
+  background: rgba(217, 119, 87, 0.1);
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(217, 119, 87, 0.25);
+  box-shadow: 0 2px 12px rgba(217, 119, 87, 0.1);
+}
+
+/* Clean invisible modern scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(217, 119, 87, 0.25);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(217, 119, 87, 0.5);
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}

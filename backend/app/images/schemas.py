@@ -14,6 +14,9 @@ class ImageAnalysisResponse(BaseModel):
     image_quality: str = "ADEQUATE"  # GOOD | ADEQUATE | POOR | UNUSABLE
     body_area: str = "general_physical"
     visual_findings: List[VisualFindingItem] = []
+    identified_conditions: List[str] = []
+    suggested_specialist: Optional[str] = "General Physician / Internal Medicine"
+    next_steps: List[str] = []
     red_flag_visual_signals: List[str] = []
     possible_visual_categories: List[str] = []
     limitations: List[str] = [

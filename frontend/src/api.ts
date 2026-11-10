@@ -101,6 +101,12 @@ export const api = {
     req<ClinicalDossier>(`/patients/${patientId}/clinical-dossier`),
   createAssessment: (p: { symptoms: Array<{ name: string; severity: string }>; vitals?: Vitals }) =>
     post<RiskAssessment>('/patients/me/assessments', p),
+  patientAssessments: (patientId: string) =>
+    req<RiskAssessment[]>(`/assessments/patient/${patientId}`),
+  deleteAssessment: (assessmentId: string) =>
+    req<{ deleted: boolean; id: string }>(`/assessments/${assessmentId}`, { method: 'DELETE' }),
+  batchDeleteAssessments: (ids: string[]) =>
+    post<{ deleted_count: number; deleted_ids: string[] }>('/assessments/batch-delete', { ids }),
   requestConsultation: (p: { specialty: string; health_summary: string }) =>
     post<Consultation>('/patients/me/consultations', p),
   myNotes: () => req<Array<{ id: string; note_text: string; created_at: string }>>('/patients/me/notes'),
@@ -134,6 +140,23 @@ export const api = {
     window.URL.revokeObjectURL(url);
   },
 
+  downloadAssessmentPdf: async (assessmentId: string) => {
+    const headers = new Headers();
+    const t = tokenStore.get();
+    if (t) headers.set('Authorization', `Bearer ${t}`);
+    const res = await fetch(`${BASE}/assessments/${assessmentId}/pdf`, { headers });
+    if (!res.ok) throw new ApiError(`Assessment PDF download failed (${res.status})`, res.status);
+    const blob = await res.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `FAME_GENIX_Health_Assessment_${assessmentId.slice(0, 8)}.pdf`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    window.URL.revokeObjectURL(url);
+  },
+
   // AI & Multi-Modal Foundation
   extractSymptoms: (text: string, language = 'English') =>
     post<{ concepts: Array<{ concept: string; severity: string }>; detected_language: string }>(
@@ -141,7 +164,17 @@ export const api = {
       { text, language }
     ),
   insight: (assessment_id: string) =>
-    post<{ explanation?: string; suggested_specialty?: string }>('/ai/patient-insight', { assessment_id }),
+    post<{
+      explanation?: string;
+      suggested_specialty?: string;
+      possible_patterns?: string[];
+      specialist?: { specialty: string; reason: string };
+      self_care?: Array<{ title: string; description: string }>;
+      food_guidance?: {
+        recommended?: Array<{ title: string; reason: string }>;
+        limit?: Array<{ title: string; reason: string }>;
+      };
+    }>('/ai/patient-insight', { assessment_id }),
   rag: (query: string, top_k = 4) => post<Evidence[]>('/rag/retrieve', { query, top_k }),
   analyze: (kind: 'reports' | 'images', file: File, extra?: Record<string, string>) => {
     const form = new FormData();

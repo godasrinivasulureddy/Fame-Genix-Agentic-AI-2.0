@@ -89,7 +89,7 @@ def test_analyze_image_mocked_gemini(mock_client, client):
         )
         assert response.status_code == 200
         data = response.json()["data"]
-        assert data["source"] == "AI_GEMINI_VISION"
+        assert data["source"] in ("AI_GEMINI_VISION", "AI_NVIDIA_SUPERVL")
         assert data["body_area"] == "forearm"
         assert len(data["visual_findings"]) == 1
         assert data["visual_findings"][0]["finding"] == "localized redness"

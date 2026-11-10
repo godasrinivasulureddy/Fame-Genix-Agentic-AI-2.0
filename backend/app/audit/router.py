@@ -1,4 +1,4 @@
-﻿import json
+import json
 
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
@@ -12,13 +12,26 @@ router = APIRouter(prefix="/api/v1/audit", tags=["audit"])
 
 
 @router.get("/logs")
-def list_logs(limit: int = 100, user=Depends(require_role(Role.SYSTEM_ADMIN)), db: Session = Depends(get_db)):
-    rows = db.query(AuditLog).order_by(AuditLog.created_at.desc()).limit(limit).all()
-    return ok([{
+def list_logs(
+    limit: int = 50,
+    offset: int = 0,
+    user=Depends(require_role(Role.SYSTEM_ADMIN)),
+    db: Session = Depends(get_db)
+):
+    total = db.query(AuditLog).count()
+    rows = db.query(AuditLog).order_by(AuditLog.created_at.desc()).offset(offset).limit(min(100, limit)).all()
+    items = [{
         "id": r.id, "actor_id": r.actor_id, "actor_role": r.actor_role, "action": r.action,
         "target_type": r.target_type, "target_id": r.target_id, "result": r.result,
         "metadata": json.loads(r.metadata_json or "{}"), "created_at": r.created_at,
-    } for r in rows])
+    } for r in rows]
+    return ok({
+        "items": items,
+        "total": total,
+        "limit": limit,
+        "offset": offset,
+        "has_more": (offset + len(items)) < total
+    })
 
 
 @router.get("/black-box/verify")

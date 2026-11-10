@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Request
 from jwt import PyJWTError
 from sqlalchemy.orm import Session
 
@@ -10,6 +10,7 @@ from app.core.exceptions import app_error
 from app.core.response import ok
 from app.core.security import (create_access_token, create_refresh_token,
                                 decode_token, hash_password, verify_password)
+from app.core.limiter import limiter
 from app.db.models import Doctor, Patient, Role, User
 from app.db.session import get_db
 
@@ -24,7 +25,8 @@ _SELF_SERVICE_ROLES = {Role.PATIENT}
 
 
 @router.post("/register")
-def register(payload: RegisterRequest, db: Session = Depends(get_db)):
+@limiter.limit("15/minute")
+def register(request: Request, payload: RegisterRequest, db: Session = Depends(get_db)):
     if payload.role not in Role.ALL:
         raise app_error("VALIDATION_ERROR", f"role must be one of {Role.ALL}")
     if payload.role not in _SELF_SERVICE_ROLES:
@@ -54,12 +56,50 @@ def register(payload: RegisterRequest, db: Session = Depends(get_db)):
     return ok(TokenResponse(access_token=access, refresh_token=refresh).model_dump())
 
 
+import time
+
+# In-memory progressive failed login tracking: {email: [timestamp, failed_count]}
+_FAILED_LOGINS: dict[str, tuple[float, int]] = {}
+_MAX_FAILED_ATTEMPTS = 5
+_LOCKOUT_DURATION_SECONDS = 300  # 5 minutes lockout
+
+
 @router.post("/login")
-def login(payload: LoginRequest, db: Session = Depends(get_db)):
+@limiter.limit("20/minute")
+def login(request: Request, payload: LoginRequest, db: Session = Depends(get_db)):
+    email_key = payload.email.lower().strip()
+    now = time.time()
+
+    # Check progressive lockout
+    if email_key in _FAILED_LOGINS:
+        last_failed_time, failed_count = _FAILED_LOGINS[email_key]
+        if failed_count >= _MAX_FAILED_ATTEMPTS:
+            remaining = int(_LOCKOUT_DURATION_SECONDS - (now - last_failed_time))
+            if remaining > 0:
+                record_audit(db, None, None, "LOGIN_LOCKED", "user", email_key, result="BLOCKED")
+                raise app_error(
+                    "ACCOUNT_TEMPORARILY_LOCKED",
+                    f"Too many failed login attempts. Account temporarily locked for security. Please try again in {remaining} seconds."
+                )
+            else:
+                # Lockout expired, reset counter
+                _FAILED_LOGINS.pop(email_key, None)
+
     user = db.query(User).filter(User.email == payload.email).first()
     if not user or not verify_password(payload.password, user.password_hash):
+        current_count = _FAILED_LOGINS.get(email_key, (now, 0))[1] + 1
+        _FAILED_LOGINS[email_key] = (now, current_count)
         record_audit(db, None, None, "LOGIN", "user", payload.email, result="FAILED")
-        raise app_error("INVALID_CREDENTIALS", "Invalid email or password.")
+        
+        remaining_attempts = max(0, _MAX_FAILED_ATTEMPTS - current_count)
+        if remaining_attempts > 0:
+            msg = f"Invalid email or password. {remaining_attempts} attempt(s) remaining before temporary lockout."
+        else:
+            msg = f"Invalid credentials. Account locked for {_LOCKOUT_DURATION_SECONDS // 60} minutes due to multiple failed attempts."
+        raise app_error("INVALID_CREDENTIALS", msg)
+
+    # Reset failed attempts upon successful login
+    _FAILED_LOGINS.pop(email_key, None)
 
     record_audit(db, user.id, user.role, "LOGIN", "user", user.id)
     access = create_access_token(user.id, user.role)

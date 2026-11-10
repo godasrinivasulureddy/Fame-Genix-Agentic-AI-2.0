@@ -37,7 +37,8 @@ def test_emergency_full_happy_path_and_audit_trail(client):
     assert final["status"] == "COMPLETED"
     assert final["simulation_status"] == "SIMULATED"
 
-    logs = client.get("/api/v1/audit/logs", headers=auth_headers(admin_token)).json()["data"]
+    logs_data = client.get("/api/v1/audit/logs", headers=auth_headers(admin_token)).json()["data"]
+    logs = logs_data.get("items", logs_data) if isinstance(logs_data, dict) else logs_data
     actions = {row["action"] for row in logs}
     assert "EMERGENCY_CASE_CREATED" in actions
     assert "EMERGENCY_VERIFIED" in actions

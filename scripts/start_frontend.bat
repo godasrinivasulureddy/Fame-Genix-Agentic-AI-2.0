@@ -1,7 +1,7 @@
 @echo off
 title FAME GENIX Frontend (Vite)
 echo Starting FAME GENIX React Frontend...
-cd /d "%~dp0frontend"
+cd /d "%~dp0..\frontend"
 if not exist node_modules (
   echo Installing frontend dependencies...
   npm install

@@ -11,7 +11,7 @@ try:
     engine.connect().close()
 except Exception as e:
     print(f"[db] Could not connect to {settings.DATABASE_URL} ({e}); falling back to SQLite.")
-    fallback_url = "sqlite:///./fame_genix.db"
+    fallback_url = f"sqlite:///{settings._DEFAULT_SQLITE_PATH}" if hasattr(settings, "_DEFAULT_SQLITE_PATH") else "sqlite:///./backend/fame_genix.db"
     engine = create_engine(fallback_url, connect_args={"check_same_thread": False})
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

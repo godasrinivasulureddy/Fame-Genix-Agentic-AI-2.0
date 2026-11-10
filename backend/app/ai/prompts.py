@@ -100,8 +100,8 @@ Return ONLY valid JSON matching this exact structure:
   "explanation": "<Simple plain-language summary of health assessment>",
   "possible_patterns": ["<Possible health patterns for evaluation, e.g. Viral-like illness, Upper respiratory irritation>"],
   "specialist": {{
-    "specialty": "<e.g. Cardiologist (Heart & Vascular Specialist), Pulmonologist (Respiratory Specialist), Dermatologist, Neurologist, General Physician / Internal Medicine>",
-    "reason": "<Reason for suggested specialist consultation based on symptoms>"
+    "specialty": "<If Risk Score < 30 and Care Level is STABLE/LOW: Return 'Routine Care / No Specialist Needed'. Otherwise provide the exact matching specialist, e.g. Cardiologist (Heart & Vascular Specialist), Pulmonologist (Respiratory Specialist), Gastroenterologist, Dermatologist, Neurologist, Medical Oncologist>",
+    "reason": "<Reason for suggested specialist consultation or why only routine wellness baseline is needed>"
   }},
   "self_care": [
     {{

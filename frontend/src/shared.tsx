@@ -190,9 +190,7 @@ export function Modal({
   children: ReactNode;
   maxWidth?: string;
 }) {
-  const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
-    closeRef.current?.focus();
     const h = (e: KeyboardEvent) => e.key === 'Escape' && onClose();
     window.addEventListener('keydown', h);
     return () => window.removeEventListener('keydown', h);
@@ -209,7 +207,6 @@ export function Modal({
         <div className="mb-4 flex items-start justify-between gap-3 border-b border-[#3e3e38] pb-3">
           <h2 className="text-base font-bold text-[#faf9f5] sm:text-xl flex items-center gap-2">{title}</h2>
           <button
-            ref={closeRef}
             onClick={onClose}
             aria-label="Close"
             className="grid min-h-[36px] min-w-[36px] place-items-center rounded-xl border border-[#3e3e38] bg-[#2c2c2b] text-[#a9a99f] hover:text-[#faf9f5]"
@@ -225,35 +222,58 @@ export function Modal({
 
 export function RiskDonut({ score }: { score: number }) {
   const pct = Math.max(0, Math.min(100, score));
-  const r = 52;
+  const r = 50;
   const c = 2 * Math.PI * r;
   const color = pct < 34 ? '#41d69a' : pct < 67 ? '#f2b955' : '#fb7185';
   return (
-    <svg viewBox="0 0 120 120" className="h-36 w-36" role="img" aria-label={`Risk score ${pct.toFixed(0)} out of 100`}>
-      <circle cx="60" cy="60" r={r} fill="none" stroke="#1b1b19" strokeWidth="12" />
+    <svg viewBox="0 0 120 120" className="h-36 w-36 overflow-visible" role="img" aria-label={`Risk score ${pct.toFixed(0)} out of 100`}>
+      {/* Background Track */}
+      <circle cx="60" cy="60" r={r} fill="none" stroke="#1b1b19" strokeWidth="10" />
+      {/* Animated Glowing Value Ring */}
       <circle
         cx="60"
         cy="60"
         r={r}
         fill="none"
         stroke={color}
-        strokeWidth="12"
+        strokeWidth="10"
         strokeLinecap="round"
         strokeDasharray={`${(c * pct) / 100} ${c}`}
         transform="rotate(-90 60 60)"
+        style={{ filter: `drop-shadow(0 0 6px ${color}88)` }}
       />
+      {/* Clean Center Typography */}
       <text
         x="60"
-        y="64"
+        y="50"
+        textAnchor="middle"
+        fill="#a9a99f"
+        fontSize="8"
+        fontWeight="700"
+        letterSpacing="0.08em"
+        style={{ textTransform: 'uppercase' }}
+      >
+        RISK SCORE
+      </text>
+      <text
+        x="60"
+        y="72"
         textAnchor="middle"
         fill="#faf9f5"
-        fontSize="28"
-        fontWeight="800"
+        fontSize="24"
+        fontWeight="900"
         fontFamily="var(--font-mono)"
       >
-        {pct.toFixed(0)}
+        {pct.toFixed(0)}%
       </text>
-      <text x="60" y="80" textAnchor="middle" fill="#a9a99f" fontSize="9">
+      <text
+        x="60"
+        y="84"
+        textAnchor="middle"
+        fill="#77766e"
+        fontSize="8"
+        fontFamily="var(--font-mono)"
+      >
         / 100
       </text>
     </svg>
@@ -399,25 +419,171 @@ export function HandoverPassportModal({
   onClose: () => void;
 }) {
   const [copied, setCopied] = useState(false);
+  const [viewJson, setViewJson] = useState(false);
   const json = JSON.stringify(passport, null, 2);
+
+  const p = passport.patient;
+  const a = passport.assessment;
+  const v = passport.vitals;
+
   return (
     <Modal title="Digital Emergency Handover Passport" onClose={onClose}>
-      <p className="mb-2 text-xs text-[#a9a99f]">
-        Assembled from live patient, assessment, and emergency case telemetry. Ready for transit handoff.
-      </p>
-      <pre className="max-h-[55vh] overflow-auto rounded-xl border border-[#3e3e38] bg-[#1b1b19] p-3 font-mono text-[11px] text-[#d97757]">
-        {json}
-      </pre>
+      <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <p className="text-xs text-[#a9a99f]">
+          Structured FHIR-compatible digital clinical passport for emergency dispatch and transit handoff.
+        </p>
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={() => setViewJson(false)}
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+              !viewJson ? 'bg-[#d97757] text-[#141413]' : 'bg-[#262624] text-[#a9a99f] hover:text-[#faf9f5]'
+            }`}
+          >
+            Clinical View
+          </button>
+          <button
+            onClick={() => setViewJson(true)}
+            className={`px-2.5 py-1 rounded-lg text-xs font-bold transition ${
+              viewJson ? 'bg-[#d97757] text-[#141413]' : 'bg-[#262624] text-[#a9a99f] hover:text-[#faf9f5]'
+            }`}
+          >
+            FHIR JSON
+          </button>
+        </div>
+      </div>
+
+      {!viewJson ? (
+        <div className="max-h-[60vh] overflow-y-auto space-y-3.5 pr-1">
+          {/* Header ID strip */}
+          <div className="flex flex-wrap items-center justify-between gap-2 p-3 rounded-2xl border border-[#3e3e38] bg-[#1b1b19]">
+            <div>
+              <p className="text-[10px] font-mono uppercase text-[#a9a99f]">Digital Passport ID</p>
+              <p className="font-mono text-sm font-extrabold text-[#d97757]">{passport.patient_public_id || 'FG-P-000001'}</p>
+            </div>
+            <div className="text-right">
+              <span className={`px-2.5 py-0.5 rounded-full font-mono text-[10px] font-bold ${
+                passport.emergency_status ? 'bg-[#fb7185]/20 text-[#fb7185] border border-[#fb7185]/40' : 'bg-[#41d69a]/20 text-[#41d69a] border border-[#41d69a]/40'
+              }`}>
+                {passport.emergency_status ? `CASE: ${passport.emergency_status}` : 'STANDBY TRANSIT'}
+              </span>
+              <p className="text-[9px] font-mono text-[#a9a99f] mt-0.5">{new Date(passport.generated_at).toLocaleString()}</p>
+            </div>
+          </div>
+
+          {/* Patient Demographics */}
+          <div className="rounded-2xl border border-[#3e3e38] bg-[#1b1b19] p-3.5 space-y-2">
+            <p className="font-mono text-[10px] uppercase font-bold text-[#faf9f5]">Patient Demographics</p>
+            <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+              <div className="rounded-xl bg-[#262624] p-2">
+                <span className="text-[10px] text-[#a9a99f]">Full Name</span>
+                <p className="font-bold text-[#faf9f5]">{p?.name || 'Unknown'}</p>
+              </div>
+              <div className="rounded-xl bg-[#262624] p-2">
+                <span className="text-[10px] text-[#a9a99f]">Age / Sex</span>
+                <p className="font-bold text-[#faf9f5]">{p?.age ? `${p.age} yrs` : '—'} · {p?.sex || '—'}</p>
+              </div>
+              <div className="rounded-xl bg-[#262624] p-2">
+                <span className="text-[10px] text-[#a9a99f]">Blood Group</span>
+                <p className="font-bold font-mono text-[#fb7185]">{p?.blood_group || 'O+'}</p>
+              </div>
+              <div className="rounded-xl bg-[#262624] p-2">
+                <span className="text-[10px] text-[#a9a99f]">Known Conditions</span>
+                <p className="font-semibold text-[#faf9f5] truncate">{p?.known_conditions || 'None'}</p>
+              </div>
+            </div>
+
+            {p?.allergies && (
+              <div className="rounded-xl border border-[#fb7185]/30 bg-[#fb7185]/10 p-2 text-xs text-[#fb7185]">
+                <strong>Allergies / Critical Alerts:</strong> {p.allergies}
+              </div>
+            )}
+          </div>
+
+          {/* Vitals Telemetry */}
+          <div className="rounded-2xl border border-[#3e3e38] bg-[#1b1b19] p-3.5 space-y-2">
+            <p className="font-mono text-[10px] uppercase font-bold text-[#faf9f5]">Live Telemetry At Dispatch</p>
+            <div className="grid grid-cols-2 gap-2 text-xs sm:grid-cols-4">
+              <div className="rounded-xl bg-[#262624] p-2 text-center">
+                <span className="text-[10px] text-[#a9a99f]">Heart Rate</span>
+                <p className="font-mono text-base font-extrabold text-[#d97757]">{v.heart_rate?.value ?? '—'} <span className="text-[10px]">bpm</span></p>
+              </div>
+              <div className="rounded-xl bg-[#262624] p-2 text-center">
+                <span className="text-[10px] text-[#a9a99f]">Oxygen SpO2</span>
+                <p className="font-mono text-base font-extrabold text-[#41d69a]">{v.spo2?.value ?? '—'} <span className="text-[10px]">%</span></p>
+              </div>
+              <div className="rounded-xl bg-[#262624] p-2 text-center">
+                <span className="text-[10px] text-[#a9a99f]">Respiration</span>
+                <p className="font-mono text-base font-extrabold text-[#faf9f5]">{v.respiratory_rate?.value ?? '—'} <span className="text-[10px]">/min</span></p>
+              </div>
+              <div className="rounded-xl bg-[#262624] p-2 text-center">
+                <span className="text-[10px] text-[#a9a99f]">Temperature</span>
+                <p className="font-mono text-base font-extrabold text-[#faf9f5]">{v.temperature?.value ?? '—'} <span className="text-[10px]">°C</span></p>
+              </div>
+            </div>
+          </div>
+
+          {/* Clinical Assessment & Acuity Tier */}
+          {a && (
+            <div className="rounded-2xl border border-[#3e3e38] bg-[#1b1b19] p-3.5 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="font-mono text-[10px] uppercase font-bold text-[#faf9f5]">Algorithmic Acuity Synthesis</p>
+                <span className="font-mono text-xs font-bold text-[#d97757]">Risk Score: {a.risk_score}/100</span>
+              </div>
+              <div className="flex flex-wrap gap-1.5">
+                <span className={`px-2.5 py-0.5 rounded-full font-mono text-xs font-bold ${
+                  a.care_level === 'POSSIBLE_EMERGENCY' ? 'bg-[#fb7185]/20 text-[#fb7185] border border-[#fb7185]/40' : (a.care_level === 'URGENT' ? 'bg-[#f2b955]/20 text-[#f2b955] border border-[#f2b955]/40' : 'bg-[#41d69a]/20 text-[#41d69a] border border-[#41d69a]/40')
+                }`}>
+                  Tier: {a.care_level.replace(/_/g, ' ')}
+                </span>
+                {a.symptoms.map((s: any, idx: number) => (
+                  <span key={idx} className="rounded-md border border-[#3e3e38] bg-[#262624] px-2 py-0.5 text-xs text-[#faf9f5]">
+                    {s.name || s}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Emergency Contacts */}
+          {p?.emergency_contacts && (
+            <div className="rounded-2xl border border-[#3e3e38] bg-[#1b1b19] p-3.5 space-y-1.5">
+              <p className="font-mono text-[10px] uppercase font-bold text-[#faf9f5]">Emergency Next of Kin Contacts</p>
+              <div className="grid gap-2 sm:grid-cols-2 text-xs">
+                {p.emergency_contacts.primary?.name && (
+                  <div className="rounded-xl bg-[#262624] p-2">
+                    <p className="text-[10px] text-[#a9a99f]">Primary Contact</p>
+                    <p className="font-bold text-[#faf9f5]">{p.emergency_contacts.primary.name}</p>
+                    <p className="font-mono text-[11px] text-[#d97757]">{p.emergency_contacts.primary.phone || 'No phone'}</p>
+                  </div>
+                )}
+                {p.emergency_contacts.secondary?.name && (
+                  <div className="rounded-xl bg-[#262624] p-2">
+                    <p className="text-[10px] text-[#a9a99f]">Secondary Contact</p>
+                    <p className="font-bold text-[#faf9f5]">{p.emergency_contacts.secondary.name}</p>
+                    <p className="font-mono text-[11px] text-[#d97757]">{p.emergency_contacts.secondary.phone || 'No phone'}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <pre className="max-h-[55vh] overflow-auto rounded-xl border border-[#3e3e38] bg-[#1b1b19] p-3 font-mono text-[11px] text-[#d97757]">
+          {json}
+        </pre>
+      )}
+
       <div className="mt-4 flex justify-between">
         <Btn
           className="flex items-center gap-2"
           onClick={async () => {
             await navigator.clipboard.writeText(json);
             setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
           }}
         >
           <Copy size={16} />
-          {copied ? 'Copied' : 'Copy JSON'}
+          {copied ? 'Copied to Clipboard' : 'Copy FHIR JSON'}
         </Btn>
         <Btn tone="ghost" onClick={onClose}>
           Close

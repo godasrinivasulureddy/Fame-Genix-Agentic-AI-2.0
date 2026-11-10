@@ -37,13 +37,13 @@ def main():
             legacy_email = spec["email"].replace("@famegenix.org", "@famegenix.demo")
             existing = db.query(User).filter((User.email == spec["email"]) | (User.email == legacy_email)).first()
             if existing:
+                existing.password_hash = hash_password(SYSTEM_PASSWORD)
                 if existing.email != spec["email"]:
                     existing.email = spec["email"]
-                    existing.password_hash = hash_password(SYSTEM_PASSWORD)
-                    db.commit()
                     print(f"[seed] updated legacy user to {spec['email']}")
                 else:
-                    print(f"[seed] {spec['email']} already exists, skipping.")
+                    print(f"[seed] {spec['email']} password refreshed to {SYSTEM_PASSWORD}.")
+                db.commit()
 
                 if spec["role"] == Role.PATIENT:
                     p = db.query(Patient).filter(Patient.user_id == existing.id).first()
