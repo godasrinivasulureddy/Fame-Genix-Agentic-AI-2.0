@@ -105,7 +105,7 @@ def create_emergency_case(payload: CreateEmergencyRequest,
 def list_cases(
     limit: int = 50,
     offset: int = 0,
-    user=Depends(require_role(Role.EMERGENCY_OPERATOR, Role.DOCTOR)),
+    user=Depends(require_role(Role.EMERGENCY_OPERATOR, Role.DOCTOR, Role.AMBULANCE_TEAM, Role.SYSTEM_ADMIN)),
     db: Session = Depends(get_db)
 ):
     cases = db.query(EmergencyCase).order_by(EmergencyCase.created_at.desc()).offset(offset).limit(min(100, limit)).all()
