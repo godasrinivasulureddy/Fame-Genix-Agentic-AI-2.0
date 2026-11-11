@@ -1206,7 +1206,7 @@ function HistoricalAssessmentDetailModal({
         {/* Patient Clinical Bio-Data Strip */}
         <div data-pdf-block="bio-strip" className="rounded-2xl border border-[#3e3e38] bg-[#262624] p-4 shadow-md space-y-3">
           {/* Official Healthcare System Report Title Heading */}
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#3e3e38]/80 pb-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[#3e3e38]/80 pb-2.5">
             <div className="flex items-center gap-2.5">
               <div className="grid h-8 w-8 place-items-center rounded-lg bg-[#d97757] text-[#141413]">
                 <Activity size={18} />
@@ -1220,7 +1220,16 @@ function HistoricalAssessmentDetailModal({
                 </p>
               </div>
             </div>
-            <div className="text-right">
+            <div className="flex items-center gap-3 ml-auto">
+              {/* Date & Time beside header */}
+              <div className="text-right">
+                <span className="font-mono text-[10px] uppercase font-bold text-[#d97757] block">
+                  Date &amp; Time
+                </span>
+                <span className="font-mono text-xs font-bold text-[#faf9f5]">
+                  {dateFormatted}
+                </span>
+              </div>
               <span className="inline-flex items-center gap-1.5 rounded-full border border-[#41d69a]/40 bg-[#41d69a]/10 px-2.5 py-0.5 font-mono text-[10px] font-bold text-[#41d69a]">
                 <span className="h-1.5 w-1.5 rounded-full bg-[#41d69a] animate-pulse" />
                 CONFIDENTIAL MEDICAL RECORD
@@ -1262,7 +1271,6 @@ function HistoricalAssessmentDetailModal({
               </span>
               <span className="font-mono text-xs text-[#a9a99f]">ID: {a.id}</span>
             </div>
-            <h3 className="text-lg font-bold text-[#faf9f5] mt-0.5">{dateFormatted}</h3>
           </div>
           <div data-pdf-ignore="true" className="flex items-center gap-2">
             <button
