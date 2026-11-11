@@ -118,6 +118,9 @@ async function req<T>(
 const post = <T>(path: string, json?: unknown) => req<T>(path, { method: 'POST', json: json ?? {} });
 const put = <T>(path: string, json?: unknown) => req<T>(path, { method: 'PUT', json: json ?? {} });
 
+// Client-side cache for patient insights by assessment ID to avoid redundant requests
+const _insightPromiseCache = new Map<string, Promise<any>>();
+
 export const api = {
   // Authentication & Session
   login: (email: string, password: string) =>
@@ -136,8 +139,10 @@ export const api = {
     post<RiskAssessment>('/patients/me/assessments', p),
   patientAssessments: (patientId: string) =>
     req<RiskAssessment[]>(`/assessments/patient/${patientId}`),
-  deleteAssessment: (assessmentId: string) =>
-    req<{ deleted: boolean; id: string }>(`/assessments/${assessmentId}`, { method: 'DELETE' }),
+  deleteAssessment: (assessmentId: string) => {
+    _insightPromiseCache.delete(assessmentId);
+    return req<{ deleted: boolean; id: string }>(`/assessments/${assessmentId}`, { method: 'DELETE' });
+  },
   batchDeleteAssessments: (ids: string[]) =>
     post<{ deleted_count: number; deleted_ids: string[] }>('/assessments/batch-delete', { ids }),
   requestConsultation: (p: { specialty: string; health_summary: string }) =>
@@ -196,8 +201,11 @@ export const api = {
       '/ai/symptoms/extract',
       { text, language }
     ),
-  insight: (assessment_id: string) =>
-    post<{
+  insight: (assessment_id: string) => {
+    if (_insightPromiseCache.has(assessment_id)) {
+      return _insightPromiseCache.get(assessment_id)!;
+    }
+    const p = post<{
       explanation?: string;
       suggested_specialty?: string;
       possible_patterns?: string[];
@@ -207,7 +215,13 @@ export const api = {
         recommended?: Array<{ title: string; reason: string }>;
         limit?: Array<{ title: string; reason: string }>;
       };
-    }>('/ai/patient-insight', { assessment_id }),
+    }>('/ai/patient-insight', { assessment_id }).catch((err) => {
+      _insightPromiseCache.delete(assessment_id);
+      throw err;
+    });
+    _insightPromiseCache.set(assessment_id, p);
+    return p;
+  },
   rag: (query: string, top_k = 4) => post<Evidence[]>('/rag/retrieve', { query, top_k }),
   analyze: (kind: 'reports' | 'images', file: File, extra?: Record<string, string>) => {
     const form = new FormData();

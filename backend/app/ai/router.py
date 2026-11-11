@@ -16,6 +16,10 @@ from app.ai.schemas import (
 
 router = APIRouter(prefix="/api/v1/ai", tags=["ai"])
 
+# In-memory LRU-like cache for patient insights keyed by assessment_id
+# Avoids redundant external AI generation on Health History view/modal/PDF downloads
+_INSIGHT_CACHE: dict[str, dict] = {}
+
 
 @router.get("/status")
 def get_ai_status():
@@ -46,6 +50,10 @@ async def generate_patient_insight(
     # Support both { assessment_id: str } from frontend and full PatientInsightRequest
     assessment_id = payload.get("assessment_id")
     if assessment_id:
+        # Check cache first for instant retrieval
+        if assessment_id in _INSIGHT_CACHE:
+            return ok(_INSIGHT_CACHE[assessment_id])
+
         a = db.query(RiskAssessment).filter(RiskAssessment.id == assessment_id).first()
         if not a:
             raise app_error("NOT_FOUND", "Assessment not found.")
@@ -75,6 +83,9 @@ async def generate_patient_insight(
         record_audit(db, None, "PATIENT", "AI_PATIENT_INSIGHT", "patient_insight", str(a.risk_score))
         res_data = result.model_dump()
         res_data["suggested_specialty"] = result.specialist.specialty
+        
+        # Cache result so viewing or downloading this assessment never hits AI again
+        _INSIGHT_CACHE[assessment_id] = res_data
         return ok(res_data)
 
     req = PatientInsightRequest(**payload)
