@@ -80,7 +80,13 @@ const SPECIALTIES = [
 const SEVERITIES = ['LOW', 'MODERATE', 'HIGH'] as const;
 const MAX_BYTES = 100 * 1024 * 1024; // 100 MB
 
-function VoiceInput({ onText }: { onText: (t: string) => void; equalGrid?: boolean }) {
+function VoiceInput({
+  onText,
+  equalGrid = false,
+}: {
+  onText: (t: string) => void;
+  equalGrid?: boolean;
+}) {
   const [lang, setLang] = useState<(typeof LANGS)[number][0]>(LANGS[0][0]);
   const [rec, setRec] = useState(false);
   const [note, setNote] = useState<string>('');
@@ -149,6 +155,39 @@ function VoiceInput({ onText }: { onText: (t: string) => void; equalGrid?: boole
       setRec(false);
     }
   };
+
+  if (equalGrid) {
+    return (
+      <>
+        {/* Language Selection */}
+        <select
+          aria-label="Dictation language"
+          className={`${fieldCls} w-full text-xs py-2.5 font-bold rounded-xl`}
+          value={lang}
+          onChange={(e) => setLang(e.target.value as any)}
+        >
+          {LANGS.map(([k, l]) => (
+            <option key={k} value={k}>
+              {l}
+            </option>
+          ))}
+        </select>
+
+        {/* Voice Dictate Button */}
+        <Btn
+          type="button"
+          tone="ghost"
+          onClick={toggle}
+          className={`w-full flex items-center justify-center gap-1.5 text-xs py-2.5 font-bold rounded-xl border border-[#3e3e38] hover:border-[#d97757] transition-all ${
+            rec ? 'border-[#fb7185] bg-[#fb7185]/20 text-[#fb7185] animate-pulse' : ''
+          }`}
+        >
+          <Mic size={14} className={rec ? 'text-[#fb7185]' : 'text-[#d97757]'} />
+          <span>{rec ? 'Stop Dictation' : 'Voice Dictate'}</span>
+        </Btn>
+      </>
+    );
+  }
 
   return (
     <div className="flex flex-wrap items-center gap-2">
@@ -2194,9 +2233,8 @@ export default function PatientView() {
                 />
               </div>
 
-              {/* Controls bar: Language box, Severity box (LOW/MODERATE/HIGH) right beside it, Add button, Voice Dictate */}
-              {/* 2nd row: Language Dropdown + Voice Dictate + Severity Dropdown + Add Button equally aligned in 1 horizontal line */}
-              <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 items-center pt-1">
+              {/* Controls bar: Language box, Voice Dictate, Level / Severity box, Add button all horizontally aligned in 1 single row */}
+              <div className="grid grid-cols-4 gap-2.5 items-center pt-1">
                 <VoiceInput onText={(t) => setText((x) => (x ? `${x} ` : '') + t)} equalGrid={true} />
                 <select
                   aria-label="Severity"
