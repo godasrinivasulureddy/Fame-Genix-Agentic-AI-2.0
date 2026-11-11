@@ -1213,10 +1213,10 @@ function HistoricalAssessmentDetailModal({
               </div>
               <div>
                 <h2 className="text-base sm:text-lg font-black tracking-tight text-[#faf9f5] uppercase font-mono">
-                  Fame Genix — Autonomous Healthcare System
+                  Fame Genix — Health Care Report
                 </h2>
                 <p className="text-[11px] font-bold text-[#d97757] tracking-wider uppercase font-mono">
-                  Health Report
+                  Clinical Assessment Record
                 </p>
               </div>
             </div>
