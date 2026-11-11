@@ -41,6 +41,39 @@ export class ApiError extends Error {
 }
 export const errMsg = (e: unknown) => (e instanceof Error ? e.message : 'Unexpected error');
 
+/**
+ * Universal UTC DateTime parser & formatter.
+ * Ensures timestamps stored as UTC in SQLite/Postgres or returned without trailing 'Z'
+ * are correctly converted to the user's exact local system date & time instead of
+ * being misinterpreted as raw local time.
+ */
+export function formatLocalDateTime(val?: string | Date | null): string {
+  if (!val) return 'Recent';
+  if (val instanceof Date) return val.toLocaleString();
+  if (typeof val !== 'string') return String(val);
+  let s = val.trim();
+  if (!s) return 'Recent';
+  // If the ISO string doesn't specify timezone offset or Z, treat as UTC
+  if (!s.endsWith('Z') && !/[+-]\d{2}(:\d{2})?$/.test(s)) {
+    s = s.replace(' ', 'T') + 'Z';
+  }
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? val : d.toLocaleString();
+}
+
+export function formatLocalTime(val?: string | Date | null, opts: Intl.DateTimeFormatOptions = { hour: '2-digit', minute: '2-digit' }): string {
+  if (!val) return '';
+  if (val instanceof Date) return val.toLocaleTimeString([], opts);
+  if (typeof val !== 'string') return '';
+  let s = val.trim();
+  if (!s) return '';
+  if (!s.endsWith('Z') && !/[+-]\d{2}(:\d{2})?$/.test(s)) {
+    s = s.replace(' ', 'T') + 'Z';
+  }
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? val : d.toLocaleTimeString([], opts);
+}
+
 interface Envelope {
   data?: unknown;
   error?: unknown;

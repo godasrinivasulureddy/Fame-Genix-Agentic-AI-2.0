@@ -28,7 +28,7 @@ import {
   Volume2,
   X,
 } from 'lucide-react';
-import { api, errMsg } from './api';
+import { api, errMsg, formatLocalDateTime } from './api';
 import type {
   ChainBlock,
   EmergencyCase,
@@ -1045,7 +1045,7 @@ function HealthHistoryModal({
           {!loading &&
             !err &&
             logs.map((item) => {
-              const dateStr = item.created_at ? new Date(item.created_at).toLocaleString() : 'Recent';
+              const dateStr = formatLocalDateTime(item.created_at);
               const isUrgent = item.risk_score >= 67 || item.care_level === 'POSSIBLE_EMERGENCY';
               const isCaution = item.risk_score >= 34 && item.risk_score < 67;
               const badgeCls = isUrgent
@@ -1198,7 +1198,7 @@ function HistoricalAssessmentDetailModal({
 
   const a = assessment;
   const isHealthyOrSafe = a.risk_score < 30 && (a.care_level === 'STABLE' || a.care_level === ('LOW' as any));
-  const dateFormatted = a.created_at ? new Date(a.created_at).toLocaleString() : 'Evaluation Record';
+  const dateFormatted = formatLocalDateTime(a.created_at);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 backdrop-blur-md p-4">

@@ -64,6 +64,13 @@ def _serialize(a: RiskAssessment, db: Session = None) -> dict:
             if r:
                 vitals_map[m] = float(r.value)
 
+    # Format ISO timestamp with UTC 'Z' so clients parse it precisely in their local timezone
+    created_at_iso = (
+        (a.created_at.isoformat() + "Z")
+        if a.created_at and not a.created_at.isoformat().endswith("Z")
+        else a.created_at
+    )
+
     return {
         "id": a.id, "patient_id": a.patient_id, "session_id": a.session_id,
         "risk_score": a.risk_score, "confidence_score": a.confidence_score,
@@ -74,7 +81,7 @@ def _serialize(a: RiskAssessment, db: Session = None) -> dict:
         "red_flags": red_flags,
         "missing_evidence": json.loads(a.missing_evidence or "[]"),
         "vitals": vitals_map,
-        "created_at": a.created_at,
+        "created_at": created_at_iso,
     }
 
 

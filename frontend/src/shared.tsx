@@ -21,7 +21,7 @@ import {
   User,
   X,
 } from 'lucide-react';
-import { api, errMsg } from './api';
+import { api, errMsg, formatLocalDateTime } from './api';
 import type {
   BluetoothDevice,
   CareLevel,
@@ -466,7 +466,7 @@ export function HandoverPassportModal({
               }`}>
                 {passport.emergency_status ? `CASE: ${passport.emergency_status}` : 'STANDBY TRANSIT'}
               </span>
-              <p className="text-[9px] font-mono text-[#a9a99f] mt-0.5">{new Date(passport.generated_at).toLocaleString()}</p>
+              <p className="text-[9px] font-mono text-[#a9a99f] mt-0.5">{formatLocalDateTime(passport.generated_at)}</p>
             </div>
           </div>
 
@@ -1677,7 +1677,7 @@ export function PatientProfileModal({
                   <div className="space-y-1">
                     <p className="text-[#faf9f5] leading-relaxed">{n.note_text}</p>
                     <p className="font-mono text-[10px] text-[#77766e]">
-                      {new Date(n.created_at).toLocaleString()}
+                      {formatLocalDateTime(n.created_at)}
                     </p>
                   </div>
                   <button

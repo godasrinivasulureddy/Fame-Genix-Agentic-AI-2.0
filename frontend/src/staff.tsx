@@ -17,7 +17,7 @@ import {
   Users,
   Volume2,
 } from 'lucide-react';
-import { api, errMsg } from './api';
+import { api, errMsg, formatLocalTime } from './api';
 import { AuditChainLedger } from './neuralOrb';
 import type {
   AmbulanceBrief,
@@ -730,7 +730,7 @@ function CaseBoard({
           <div className="mt-2 flex items-center justify-between">
             <StatusBadge status={c.status} tone="cyan" />
             <span className="text-[11px] text-[#a9a99f]">
-              {new Date(c.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              {formatLocalTime(c.created_at)}
             </span>
           </div>
         </button>
@@ -1389,7 +1389,7 @@ export function AdminView() {
                 >
                   <div>
                     <span className="text-[#d97757]">
-                      {new Date(a.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+                      {formatLocalTime(a.created_at, { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
                     </span>{' · '}
                     <span className="text-[#9c87f5]">{a.action}</span>
                   </div>
