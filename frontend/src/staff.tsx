@@ -980,9 +980,9 @@ export function EmergencyView() {
                   <p className="flex items-center gap-1.5 font-medium">
                     <MapPin size={16} className="text-[#d97757]" />
                     {c.location?.address ?? 'Browser/Device GPS Coordinate Latch'}
-                    {c.location?.lat !== undefined && (
+                    {c.location?.lat != null && c.location?.lng != null && (
                       <span className="font-mono text-[#a9a99f]">
-                        {' '}· {c.location.lat.toFixed(4)}, {c.location.lng?.toFixed(4)}
+                        {' '}· {Number(c.location.lat).toFixed(4)}, {Number(c.location.lng).toFixed(4)}
                       </span>
                     )}
                   </p>
